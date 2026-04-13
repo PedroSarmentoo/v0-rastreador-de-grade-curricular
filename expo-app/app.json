@@ -3,12 +3,10 @@
     "name": "Rastreador de Grade Curricular",
     "slug": "rastreador-grade-curricular",
     "version": "1.0.0",
+    "sdkVersion": "53.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#1a1a2e"
     },
@@ -17,12 +15,11 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a2e"
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "bundler": "metro"
     }
   }
 }
