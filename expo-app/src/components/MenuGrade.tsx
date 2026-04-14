@@ -29,7 +29,39 @@ const MODELO_JSON = `[
 ]`;
 
 export function MenuGrade() {
-  const { importarGrade } = useDisciplinas();
+  const { importarGrade, resetarGrade } = useDisciplinas();
+
+  const handleResetGrade = () => {
+    const executarReset = () => {
+      try {
+        resetarGrade();
+        if (Platform.OS === 'web') {
+          window.alert('Sua grade foi restaurada para Engenharia de Sistemas!');
+        } else {
+          Alert.alert('Sucesso', 'Sua grade foi restaurada para Engenharia de Sistemas!');
+        }
+      } catch (e: any) {
+        if (Platform.OS === 'web') window.alert('Erro ao resetar: ' + (e.message || ''));
+        else Alert.alert('Erro', 'Erro ao resetar: ' + (e.message || ''));
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmou = window.confirm('Tem certeza que deseja restaurar a grade de Engenharia de Sistemas? Seu progresso e estrutura atual serão apagados.');
+      if (confirmou) {
+        executarReset();
+      }
+    } else {
+      Alert.alert(
+        'Restaurar Grade Padrão',
+        'Tem certeza que deseja restaurar a grade de Engenharia de Sistemas? Seu progresso e estrutura atual serão apagados.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Restaurar', style: 'destructive', onPress: executarReset }
+        ]
+      );
+    }
+  };
 
   const handleDownloadModelo = async () => {
     try {
@@ -141,6 +173,11 @@ export function MenuGrade() {
         <TouchableOpacity style={styles.buttonAction} onPress={handleDownloadModelo}>
           <Ionicons name="download-outline" size={20} color={colors.textMuted} />
           <Text style={[styles.buttonText, { color: colors.textMuted }]}>Baixar Exemplo</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.buttonAction} onPress={handleResetGrade}>
+          <Ionicons name="refresh-outline" size={20} color={colors.bloqueado} />
+          <Text style={[styles.buttonText, { color: colors.bloqueado }]}>Restaurar Padrão</Text>
         </TouchableOpacity>
       </View>
     </View>

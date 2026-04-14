@@ -27,6 +27,7 @@ interface DisciplinasContextData {
   semestres: number[];
   isLoading: boolean;
   importarGrade: (novaGrade: Disciplina[]) => void;
+  resetarGrade: () => void;
 }
 
 const DisciplinasContext = createContext<DisciplinasContextData | undefined>(undefined);
@@ -187,6 +188,11 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
       console.error('Erro ao importar grade:', error);
       throw error;
     }
+  }, [atualizarTodasDisciplinas]);
+
+  const resetarGrade = useCallback(() => {
+    // Restores default "Engenharia de Sistemas"
+    setDisciplinas(atualizarTodasDisciplinas(disciplinasIniciais));
   }, [atualizarTodasDisciplinas]);
 
   // ESTATÍSTICAS
@@ -372,7 +378,8 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         getDisciplinasPorSemestre,
         semestres,
         isLoading,
-        importarGrade
+        importarGrade,
+        resetarGrade
       }}
     >
       {children}
