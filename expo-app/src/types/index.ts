@@ -18,6 +18,8 @@ export interface AtividadeItem {
   horas: number;
   nomeDocumento?: string;
   uriDocumento?: string;
+  modalidadeId?: string;       // ID da regra de ACC, caso selecione da lista
+  quantidadeOriginal?: number; // Para mostrar o valor antes da conversão
 }
 
 export interface AtividadesComplementares {
