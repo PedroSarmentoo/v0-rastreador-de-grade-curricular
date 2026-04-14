@@ -192,12 +192,17 @@ export function MenuGrade() {
   const handleImportGrade = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: 'text/csv',
+        type: '*/*',
         copyToCacheDirectory: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
+        
+        if (asset.name && !asset.name.toLowerCase().endsWith('.csv')) {
+          throw new Error('Por favor, selecione um arquivo válido no formato .csv');
+        }
+
         let content = '';
 
         if (Platform.OS === 'web') {
