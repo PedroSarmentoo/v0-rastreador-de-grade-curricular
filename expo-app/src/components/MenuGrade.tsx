@@ -45,8 +45,17 @@ const parseCSV = (csvText: string): any[] => {
   return result;
 };
 
+const gerarCSV = (disciplinas: any[]): string => {
+  const header = 'id;nome;semestre;preRequisitos';
+  const lines = disciplinas.map(d => {
+    const preReqs = (d.preRequisitos || []).join(',');
+    return `${d.id};${d.nome};${d.semestre};${preReqs}`;
+  });
+  return [header, ...lines].join('\\n');
+};
+
 export function MenuGrade() {
-  const { importarGrade, resetarGrade } = useDisciplinas();
+  const { disciplinas, importarGrade, resetarGrade } = useDisciplinas();
 
   const handleResetGrade = () => {
     const executarReset = () => {
@@ -77,6 +86,56 @@ export function MenuGrade() {
           { text: 'Restaurar', style: 'destructive', onPress: executarReset }
         ]
       );
+    }
+  };
+
+  const handleExportGradeAtual = async () => {
+    try {
+      const csvContent = gerarCSV(disciplinas);
+      const csvComBOM = String.fromCharCode(0xFEFF) + csvContent;
+
+      if (Platform.OS === 'web') {
+        const blob = new Blob([csvComBOM], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'minha_grade_atual.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      } else if (Platform.OS === 'android') {
+        // @ts-ignore
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        if (permissions.granted) {
+          // @ts-ignore
+          const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+            permissions.directoryUri,
+            'minha_grade_atual.csv',
+            'text/csv'
+          );
+          // @ts-ignore
+          await FileSystem.writeAsStringAsync(fileUri, csvComBOM);
+          Alert.alert('Sucesso', 'A grade atual foi exportada com sucesso!');
+        }
+      } else {
+        // @ts-ignore
+        const fileUri = FileSystem.cacheDirectory + 'minha_grade_atual.csv';
+        // @ts-ignore
+        await FileSystem.writeAsStringAsync(fileUri, csvComBOM);
+        
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'text/csv',
+            dialogTitle: 'Exportar Grade Atual',
+            UTI: 'public.comma-separated-values-text'
+          });
+        } else {
+          Alert.alert('Aviso', 'O sistema não suporta manipular este arquivo.');
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao exportar grade:', error);
+      Alert.alert('Erro', 'Não foi possível exportar a grade atual.');
     }
   };
 
@@ -205,6 +264,11 @@ export function MenuGrade() {
           <Text style={styles.buttonText}>Importar Grade</Text>
         </TouchableOpacity>
         
+        <TouchableOpacity style={styles.buttonAction} onPress={handleExportGradeAtual}>
+          <Ionicons name="share-outline" size={20} color={colors.text} />
+          <Text style={[styles.buttonText, { color: colors.text }]}>Exportar Atual</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.buttonAction} onPress={handleDownloadModelo}>
           <Ionicons name="download-outline" size={20} color={colors.textMuted} />
           <Text style={[styles.buttonText, { color: colors.textMuted }]}>Baixar Exemplo</Text>
