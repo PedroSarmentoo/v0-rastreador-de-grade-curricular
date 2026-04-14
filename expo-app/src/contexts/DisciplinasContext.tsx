@@ -1,15 +1,18 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Disciplina, StatusDisciplina } from '../types';
+import { Disciplina, DisciplinaNode, StatusDisciplina } from '../types';
 import { disciplinasIniciais } from '../data/disciplinas';
 
 const STORAGE_KEY = '@grade_curricular_dados_v1';
 
 interface DisciplinasContextData {
   disciplinas: Disciplina[];
+  arvoresBase: DisciplinaNode[]; // Novo: As raízes das ramificações (disciplinas sem pré-requisitos e seus ramos)
   toggleDisciplina: (id: string) => void;
+  toggleSemestre: (semestre: number) => void;
   totalDisciplinas: number;
   disciplinasConcluidas: number;
+  disciplinasCursando: number;
   progressoPercentual: number;
   anoEstimadoFormatura: string; // Nova estatística
   disciplinasDisponiveis: number;
@@ -25,26 +28,45 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>(disciplinasIniciais);
   const [isLoading, setIsLoading] = useState(true);
 
-  const calcularStatus = useCallback((
-    disciplina: Disciplina,
-    todasDisciplinas: Disciplina[]
-  ): StatusDisciplina => {
-    if (disciplina.status === 'concluida') return 'concluida';
-    
-    const preRequisitosAtendidos = disciplina.preRequisitos.every((preReqId) => {
-      const preReq = todasDisciplinas.find((d) => d.id === preReqId);
-      return preReq?.status === 'concluida';
-    });
-    
-    return preRequisitosAtendidos ? 'disponivel' : 'bloqueada';
-  }, []);
-
   const atualizarTodasDisciplinas = useCallback((disciplinasAtuais: Disciplina[]): Disciplina[] => {
-    return disciplinasAtuais.map((disciplina) => ({
-      ...disciplina,
-      status: calcularStatus(disciplina, disciplinasAtuais),
-    }));
-  }, [calcularStatus]);
+    // Usamos um mapa para ter acesso rápido a O(1) aos objetos iteráveis
+    const mapa = new Map<string, Disciplina>();
+    disciplinasAtuais.forEach(d => mapa.set(d.id, { ...d }));
+
+    // Abordagem Topológica (Cascade):
+    // Como os 'ramos' crescem e dependem de matérias anteriores,
+    // rodamos este loop até que todas as condições (efeito cascata) se estabilizem nas árvores.
+    let cascataAcontecendo = true;
+    while (cascataAcontecendo) {
+      cascataAcontecendo = false;
+      
+      mapa.forEach((disciplina) => {
+        const preReqAtendidos = disciplina.preRequisitos.every(
+          reqId => mapa.get(reqId)?.status === 'concluida'
+        );
+
+        let novoStatus = disciplina.status;
+
+        // Se o usuário "Desmarcar" um pré-requisito (ex: Cálculo I volta pra disponível),
+        // isso deve quebrar o ramo inteiro para baixo (GAAL bloqueado, Numérica bloqueada, etc).
+        if (!preReqAtendidos) {
+          novoStatus = 'bloqueada';
+        } 
+        // Se os pré-requisitos estão cumpridos e ela estava bloqueada,
+        // um novo ramo cresceu até aqui, logo ela fica disponível novamente!
+        else if (disciplina.status === 'bloqueada') {
+          novoStatus = 'disponivel';
+        }
+
+        if (disciplina.status !== novoStatus) {
+          disciplina.status = novoStatus;
+          cascataAcontecendo = true;
+        }
+      });
+    }
+
+    return Array.from(mapa.values());
+  }, []);
 
   // CARREGAR DADOS
   useEffect(() => {
@@ -84,8 +106,14 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
       const disciplina = prev.find((d) => d.id === id);
       if (!disciplina || disciplina.status === 'bloqueada') return prev;
 
-      const novoStatus: StatusDisciplina = 
-        disciplina.status === 'concluida' ? 'disponivel' : 'concluida';
+      let novoStatus: StatusDisciplina;
+      if (disciplina.status === 'disponivel') {
+        novoStatus = 'cursando';
+      } else if (disciplina.status === 'cursando') {
+        novoStatus = 'concluida';
+      } else {
+        novoStatus = 'disponivel';
+      }
 
       const novaLista = prev.map((d) =>
         d.id === id ? { ...d, status: novoStatus } : d
@@ -95,11 +123,74 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     });
   }, [atualizarTodasDisciplinas]);
 
+  const toggleSemestre = useCallback((semestre: number) => {
+    setDisciplinas((prev) => {
+      const discSemestre = prev.filter(d => d.semestre === semestre);
+      // Se não houver disciplinas neste semestre, não faz nada
+      if (discSemestre.length === 0) return prev;
+
+      // Verifica se todas do semestre já estão concluídas
+      const todasConcluidas = discSemestre.every(d => d.status === 'concluida');
+      
+      const novaLista = prev.map(d => {
+        if (d.semestre === semestre) {
+          // Se todas estiverem concluídas, volta para disponível
+          // (mas a função atualizarTodasDisciplinas pode transformá-las em 'bloqueada' dependendo dos pre-requisitos)
+          // Se não estiverem todas concluídas, força para 'concluida' ignorando as travas
+          return { ...d, status: todasConcluidas ? 'disponivel' : 'concluida' };
+        }
+        return d;
+      });
+
+      return atualizarTodasDisciplinas(novaLista);
+    });
+  }, [atualizarTodasDisciplinas]);
+
   // ESTATÍSTICAS
   const totalDisciplinas = disciplinas.length;
   
+  // ÁRVORES / RAMIFICAÇÕES DE DISCIPLINAS
+  const arvoresBase = useMemo(() => {
+    const mapa = new Map<string, DisciplinaNode>();
+    
+    // 1. Instanciar todos os nós
+    disciplinas.forEach((d) => {
+      mapa.set(d.id, { ...d, dependentes: [] });
+    });
+
+    // 2. Preencher os dependentes para representar o fluxo "crescente" / árvore
+    disciplinas.forEach((d) => {
+      d.preRequisitos.forEach((preReqId) => {
+        const preReqNode = mapa.get(preReqId);
+        const atualNode = mapa.get(d.id);
+
+        if (preReqNode && atualNode) {
+          // Se Cálculo I é pré-req de GAAL e de Análise Numérica, 
+          // Análise e GAAL são adicionadas como dependentes de Cálculo I.
+          preReqNode.dependentes.push(atualNode);
+        }
+      });
+    });
+
+    // 3. Montar apenas a base (raízes)
+    const raizes: DisciplinaNode[] = [];
+    mapa.forEach((node) => {
+      // São raízes ("bases") matriciais quando não tem pré-requisitos!
+      if (node.preRequisitos.length === 0) {
+        raizes.push(node);
+      }
+    });
+
+    return raizes;
+  }, [disciplinas]);
+
   const disciplinasConcluidas = useMemo(
     () => disciplinas.filter((d) => d.status === 'concluida').length,
+    [disciplinas]
+  );
+
+  const disciplinasCursando = useMemo(
+    () => disciplinas.filter((d) => d.status === 'cursando').length,
     [disciplinas]
   );
 
@@ -118,8 +209,8 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     [disciplinasConcluidas, totalDisciplinas]
   );
 
-  // CÁLCULO DE FORMATURA ESTIMADA
-const anoEstimadoFormatura = useMemo(() => {
+  // CÁLCULO DE FORMATURA COM BASE NO "CAMINHO CRÍTICO" DAS ÁRVORES
+  const anoEstimadoFormatura = useMemo(() => {
     const pendentes = disciplinas.filter((d) => d.status !== 'concluida');
     if (pendentes.length === 0) return "Formado!";
 
@@ -128,40 +219,83 @@ const anoEstimadoFormatura = useMemo(() => {
     const mesAtual = agora.getMonth(); 
     const semestreCivilAtual = mesAtual <= 5 ? 1 : 2;
 
-    // 1. Identificar qual o semestre de oferta de cada disciplina pendente
-    // Baseado na sua regra: 
-    // Oferta no 2º Semestre: 1, 3, 5, 6, 8, 10
-    // Oferta no 1º Semestre: 2, 4, 7, 9 (assumindo que 7 e 9 seguem a lógica oposta)
-    
-    const semestresOfertaDois = [1, 3, 5, 6, 8, 10];
+    const pendentesFuturas = disciplinas.filter((d) => d.status === 'disponivel' || d.status === 'bloqueada');
 
-    // Encontrar a disciplina pendente que pertence ao "último semestre de curso"
-    const ultimoSemestrePendente = Math.max(...pendentes.map(d => d.semestre));
-    
-    // Determinar em qual período civil (1 ou 2) esse último semestre é ofertado
-    const periodoOfertaFinal = semestresOfertaDois.includes(ultimoSemestrePendente) ? 2 : 1;
-
-    // 2. Calcular o ano
-    // Se a última matéria é do 10º semestre, ela só abre no 2º semestre do ano.
-    // Precisamos calcular quantos anos faltam para chegar nesse período.
-    
-    // Estimativa baseada em volume (6 por semestre) para saber se a pessoa
-    // vai demorar mais do que o tempo "natural" da grade devido a reprovações
-    const MEDIA_DISC = 6;
-    const semestresPorVolume = Math.ceil(pendentes.length / MEDIA_DISC);
-    
-    let anoCalculado = anoAtual + Math.floor((semestreCivilAtual + semestresPorVolume - 1) / 2);
-    let semestreCalculado = (semestreCivilAtual + semestresPorVolume - 1) % 2 === 0 ? 2 : 1;
-
-    // 3. Ajuste de Safra (Sincronização com a Unimontes)
-    // Se o cálculo por volume diz que você forma em 2028.1, mas a sua última matéria 
-    // pendente só oferta no semestre 2, o app joga para 2028.2.
-    if (semestreCalculado === 1 && periodoOfertaFinal === 2) {
-      semestreCalculado = 2;
-    } else if (semestreCalculado === 2 && periodoOfertaFinal === 1) {
-      anoCalculado += 1;
-      semestreCalculado = 1;
+    if (pendentesFuturas.length === 0) {
+      return `${anoAtual}.${semestreCivilAtual}`;
     }
+
+    const semestresOfertaDois = [1, 3, 5, 6, 8, 10];
+    
+    // Auxiliar: essa matéria é oferecida neste semestre civil (1 ou 2)?
+    const isOferecidaNesteSemestre = (semestreDaMatriz: number, civilSem: number) => {
+      const eSegundoSemestre = semestresOfertaDois.includes(semestreDaMatriz);
+      return (eSegundoSemestre && civilSem === 2) || (!eSegundoSemestre && civilSem === 1);
+    };
+
+    // Simulador de Timeline baseado em Grafos Direcionados:
+    // Mapeamos quando cada disciplina vai ser cursada.
+    // 0 = Semestre Atual (já cursando)
+    // 1 = Próximo Semestre
+    const semesterPlan = new Map<string, number>();
+
+    // Fixamos as que você já está cursando no momento 0 (hoje)
+    disciplinas.filter(d => d.status === 'cursando').forEach(d => {
+      semesterPlan.set(d.id, 0);
+    });
+
+    let semestreIndex = 1; 
+    let poolParaPlanejar = [...pendentesFuturas];
+    const MAX_MATERIAS_POR_SEMESTRE = 6;
+    
+    // Evitar loops infinitos acidentais
+    let safelock = 100;
+
+    while (poolParaPlanejar.length > 0 && safelock > 0) {
+      safelock--;
+      // Qual é o semestre civil (1 ou 2) dessa rodada que estamos planejando no futuro?
+      const semCivilDaRodada = (semestreCivilAtual + semestreIndex - 1) % 2 + 1;
+
+      // 1. Procurar na árvore e colher as matérias que os pre-reqs já foram satisfeitos
+      const disciplinasLiberadas = poolParaPlanejar.filter(d => {
+        // A oferta deve bater com o semestre civil planejado
+        if (!isOferecidaNesteSemestre(d.semestre, semCivilDaRodada)) return false;
+
+        // O 'pai' na nossa árvore DEVE fechar até 1 semestre antes de você iniciar esse 'filho' (ramo)
+        // Isso simula o crescimento ramo por ramo: Calc I antes -> GAAL depois
+        const preReqResolvido = d.preRequisitos.every(prId => {
+          const pr = disciplinas.find(x => x.id === prId);
+          if (pr?.status === 'concluida') return true;
+          
+          const indexEscalonadoDoPai = semesterPlan.get(prId);
+          return indexEscalonadoDoPai !== undefined && indexEscalonadoDoPai < semestreIndex;
+        });
+
+        return preReqResolvido;
+      });
+
+      // Escolhemos, preferencialmente, as de períodos originais mais baixos primeiro 
+      // Ex: O usuário atrasou Calc, deve planejar Calc antes de pegar matérias do 8º.
+      disciplinasLiberadas.sort((a, b) => a.semestre - b.semestre);
+      const limitadasAoMaximo = disciplinasLiberadas.slice(0, MAX_MATERIAS_POR_SEMESTRE);
+
+      if (limitadasAoMaximo.length > 0) {
+        limitadasAoMaximo.forEach(d => semesterPlan.set(d.id, semestreIndex));
+        poolParaPlanejar = poolParaPlanejar.filter(d => !limitadasAoMaximo.includes(d));
+      }
+
+      // Se há matérias para planejar, mas a cota fechou ou os pré-requisitos empacaram neste 
+      // semestre, pule o tempo em +1 para planejar no próximo! 
+      if (poolParaPlanejar.length > 0) {
+        semestreIndex++;
+      }
+    }
+
+    // Com o cálculo de grafos e árvore feito, 'semestreIndex' guardou
+    // rigorosamente a quantidade correta de semestres transcorridos
+    const semestresTotaisNoFuturo = semestreCivilAtual + semestreIndex;
+    const anoCalculado = anoAtual + Math.floor((semestresTotaisNoFuturo - 1) / 2);
+    const semestreCalculado = semestresTotaisNoFuturo % 2 === 0 ? 2 : 1;
 
     return `${anoCalculado}.${semestreCalculado}`;
   }, [disciplinas]);
@@ -180,9 +314,12 @@ const anoEstimadoFormatura = useMemo(() => {
     <DisciplinasContext.Provider
       value={{
         disciplinas,
+        arvoresBase, // Passamos as raízes das árvores para serem consumidas globalmente
         toggleDisciplina,
+        toggleSemestre,
         totalDisciplinas,
         disciplinasConcluidas,
+        disciplinasCursando,
         progressoPercentual,
         anoEstimadoFormatura,
         disciplinasDisponiveis,

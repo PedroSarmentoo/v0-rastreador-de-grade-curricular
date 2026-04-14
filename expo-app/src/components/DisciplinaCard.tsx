@@ -20,6 +20,11 @@ export function DisciplinaCard({ disciplina }: Props) {
           backgroundColor: colors.concluidaBg,
           borderColor: colors.concluidaBorder,
         };
+      case 'cursando':
+        return {
+          backgroundColor: colors.cursandoBg,
+          borderColor: colors.cursandoBorder,
+        };
       case 'disponivel':
         return {
           backgroundColor: colors.disponivelBg,
@@ -37,6 +42,8 @@ export function DisciplinaCard({ disciplina }: Props) {
     switch (status) {
       case 'concluida':
         return 'checkmark-circle';
+      case 'cursando':
+        return 'play-circle';
       case 'disponivel':
         return 'ellipse-outline';
       default:
@@ -48,6 +55,8 @@ export function DisciplinaCard({ disciplina }: Props) {
     switch (status) {
       case 'concluida':
         return colors.concluida;
+      case 'cursando':
+        return colors.cursando;
       case 'disponivel':
         return colors.disponivel;
       default:
@@ -101,7 +110,7 @@ export function DisciplinaCard({ disciplina }: Props) {
 
       <View style={styles.statusBadge}>
         <Text style={[styles.statusText, { color: getIconColor() }]}>
-          {status === 'concluida' ? 'Concluida' : status === 'disponivel' ? 'Disponivel' : 'Bloqueada'}
+          {status === 'concluida' ? 'Concluida' : status === 'cursando' ? 'Cursando' : status === 'disponivel' ? 'Disponivel' : 'Bloqueada'}
         </Text>
       </View>
     </TouchableOpacity>

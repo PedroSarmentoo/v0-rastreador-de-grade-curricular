@@ -8,6 +8,7 @@ export function EstatisticasHeader() {
   const { 
     totalDisciplinas, 
     disciplinasConcluidas, 
+    disciplinasCursando,
     progressoPercentual, 
     anoEstimadoFormatura, // Trocamos aqui
     disciplinasDisponiveis,
@@ -46,6 +47,12 @@ export function EstatisticasHeader() {
           <Ionicons name="checkmark-circle-outline" size={20} color={colors.concluida} />
           <Text style={styles.statValue}>{disciplinasConcluidas}</Text>
           <Text style={styles.statLabel}>Concluídas</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Ionicons name="play-circle-outline" size={20} color={colors.cursando} />
+          <Text style={styles.statValue}>{disciplinasCursando}</Text>
+          <Text style={styles.statLabel}>Cursando</Text>
         </View>
         
         {/* Card de Formatura Atualizado */}

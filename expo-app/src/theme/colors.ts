@@ -18,5 +18,9 @@ export const colors = {
   bloqueadaBg: 'rgba(107, 114, 128, 0.1)',
   bloqueadaBorder: 'rgba(107, 114, 128, 0.3)',
   
+  cursando: '#f59e0b',
+  cursandoBg: 'rgba(245, 158, 11, 0.15)',
+  cursandoBorder: 'rgba(245, 158, 11, 0.4)',
+  
   border: '#2a2a45',
 };

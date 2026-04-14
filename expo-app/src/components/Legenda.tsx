@@ -27,6 +27,11 @@ export function Legenda() {
         label="Concluida" 
       />
       <LegendaItem 
+        icon="play-circle" 
+        color={colors.cursando} 
+        label="Cursando" 
+      />
+      <LegendaItem 
         icon="ellipse-outline" 
         color={colors.disponivel} 
         label="Disponivel" 
