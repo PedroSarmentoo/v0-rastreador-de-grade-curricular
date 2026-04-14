@@ -73,6 +73,20 @@ export function MenuGrade() {
         a.download = 'modelo_grade.json';
         a.click();
         URL.revokeObjectURL(url);
+      } else if (Platform.OS === 'android') {
+        // @ts-ignore
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        if (permissions.granted) {
+          // @ts-ignore
+          const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+            permissions.directoryUri,
+            'modelo_grade.json',
+            'application/json'
+          );
+          // @ts-ignore
+          await FileSystem.writeAsStringAsync(fileUri, MODELO_JSON);
+          Alert.alert('Sucesso', 'O modelo foi salvo no seu dispositivo!');
+        }
       } else {
         // @ts-ignore
         const fileUri = FileSystem.cacheDirectory + 'modelo_grade.json';
@@ -83,11 +97,11 @@ export function MenuGrade() {
         if (isAvailable) {
           await Sharing.shareAsync(fileUri, {
             mimeType: 'application/json',
-            dialogTitle: 'Baixar Modelo de Grade Curricular',
+            dialogTitle: 'Salvar Modelo na pasta Arquivos',
             UTI: 'public.json'
           });
         } else {
-          Alert.alert('Aviso', 'O sistema não suporta o compartilhamento deste arquivo.');
+          Alert.alert('Aviso', 'O sistema não suporta manipular este arquivo.');
         }
       }
     } catch (error) {
