@@ -6,12 +6,14 @@ import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { EstatisticasHeader } from '../components/EstatisticasHeader';
 import { Legenda } from '../components/Legenda';
 import { SemestreSection } from '../components/SemestreSection';
+import { Confetti } from '../components/Confetti';
 
 export function HomeScreen() {
-  const { semestres } = useDisciplinas();
+  const { semestres, progressoPercentual } = useDisciplinas();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <Confetti isActive={progressoPercentual === 100} />
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.content}
