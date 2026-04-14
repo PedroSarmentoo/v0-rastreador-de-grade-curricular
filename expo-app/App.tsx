@@ -1,6 +1,6 @@
 import 'react-native-url-polyfill/auto';
 import React, { useState } from 'react';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'; // <-- Importei o useSafeAreaInsets aqui
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,9 @@ import { colors } from './src/theme/colors';
 
 function MainNavigator() {
   const [activeTab, setActiveTab] = useState<'grade' | 'atividades' | 'settings'>('grade');
+  
+  // 1. Chamamos o hook para ler o tamanho da barra do celular
+  const insets = useSafeAreaInsets(); 
 
   return (
     <View style={styles.container}>
@@ -23,7 +26,13 @@ function MainNavigator() {
       </View>
 
       {/* Custom Bottom Tab Bar */}
-      <View style={styles.tabBar}>
+      <View 
+        style={[
+          styles.tabBar, 
+          // 2. Aplicamos o paddingBottom dinâmico direto no estilo inline
+          { paddingBottom: Math.max(insets.bottom, 16) }
+        ]}
+      >
         <TouchableOpacity 
           style={styles.tabItem} 
           onPress={() => setActiveTab('grade')}
@@ -97,8 +106,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingBottom: 24, // Para suportar safe area de alguns dispositivos, idealmente usar insets.bottom
     paddingTop: 12,
+    // Removi o paddingBottom daqui, pois agora é controlado pelo insets no JSX
   },
   tabItem: {
     flex: 1,

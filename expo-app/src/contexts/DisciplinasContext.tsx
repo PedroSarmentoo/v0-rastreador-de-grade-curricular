@@ -5,13 +5,18 @@ import { disciplinasIniciais } from '../data/disciplinas';
 
 const STORAGE_KEY = '@grade_curricular_dados_v1';
 const ACC_STORAGE_KEY = '@grade_curricular_acc_v2';
+const COURSE_NAME_KEY = '@grade_curricular_nome_curso'; // <-- NOVO: Chave para o nome do curso
 
 interface DisciplinasContextData {
   disciplinas: Disciplina[];
-  arvoresBase: DisciplinaNode[]; // Novo: As raízes das ramificações (disciplinas sem pré-requisitos e seus ramos)
+  arvoresBase: DisciplinaNode[];
   toggleDisciplina: (id: string) => void;
   toggleSemestre: (semestre: number) => void;
   
+  // NOME DO CURSO (NOVO)
+  nomeCurso: string;
+  setNomeCurso: (nome: string) => void;
+
   // ACC / AIEX
   atividades: AtividadesComplementares;
   setAtividades: React.Dispatch<React.SetStateAction<AtividadesComplementares>>;
@@ -20,7 +25,7 @@ interface DisciplinasContextData {
   disciplinasConcluidas: number;
   disciplinasCursando: number;
   progressoPercentual: number;
-  anoEstimadoFormatura: string; // Nova estatística
+  anoEstimadoFormatura: string;
   disciplinasDisponiveis: number;
   disciplinasBloqueadas: number;
   getDisciplinasPorSemestre: (semestre: number) => Disciplina[];
@@ -34,6 +39,7 @@ const DisciplinasContext = createContext<DisciplinasContextData | undefined>(und
 
 export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>(disciplinasIniciais);
+  const [nomeCurso, setNomeCurso] = useState('Engenharia de Sistemas'); // <-- NOVO: Estado do nome do curso
   const [atividades, setAtividades] = useState<AtividadesComplementares>({
     temAiex: false,
     listaAcc: [],
@@ -42,13 +48,9 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const atualizarTodasDisciplinas = useCallback((disciplinasAtuais: Disciplina[]): Disciplina[] => {
-    // Usamos um mapa para ter acesso rápido a O(1) aos objetos iteráveis
     const mapa = new Map<string, Disciplina>();
     disciplinasAtuais.forEach(d => mapa.set(d.id, { ...d }));
 
-    // Abordagem Topológica (Cascade):
-    // Como os 'ramos' crescem e dependem de matérias anteriores,
-    // rodamos este loop até que todas as condições (efeito cascata) se estabilizem nas árvores.
     let cascataAcontecendo = true;
     while (cascataAcontecendo) {
       cascataAcontecendo = false;
@@ -60,13 +62,9 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
 
         let novoStatus = disciplina.status;
 
-        // Se o usuário "Desmarcar" um pré-requisito (ex: Cálculo I volta pra disponível),
-        // isso deve quebrar o ramo inteiro para baixo (GAAL bloqueado, Numérica bloqueada, etc).
         if (!preReqAtendidos) {
           novoStatus = 'bloqueada';
         } 
-        // Se os pré-requisitos estão cumpridos e ela estava bloqueada,
-        // um novo ramo cresceu até aqui, logo ela fica disponível novamente!
         else if (disciplina.status === 'bloqueada') {
           novoStatus = 'disponivel';
         }
@@ -95,6 +93,13 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         if (accValue !== null) {
           setAtividades(JSON.parse(accValue));
         }
+
+        // <-- NOVO: Carregar o nome do curso
+        const nomeSalvo = await AsyncStorage.getItem(COURSE_NAME_KEY);
+        if (nomeSalvo !== null) {
+          setNomeCurso(nomeSalvo);
+        }
+
       } catch (e) {
         console.error('Erro ao carregar dados:', e);
       } finally {
@@ -104,7 +109,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     carregarDados();
   }, [atualizarTodasDisciplinas]);
 
-  // SALVAR DADOS
+  // SALVAR DADOS (Disciplinas e ACC)
   useEffect(() => {
     async function salvarDados() {
       if (!isLoading) {
@@ -121,6 +126,22 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     }
     salvarDados();
   }, [disciplinas, atividades, isLoading]);
+
+  // <-- NOVO: SALVAR DADOS (Nome do Curso)
+  // Criamos um useEffect separado para o nome do curso para evitar que ele
+  // seja salvo desnecessariamente quando uma disciplina muda, e vice-versa.
+  useEffect(() => {
+    async function salvarNomeCurso() {
+      if (!isLoading) {
+        try {
+          await AsyncStorage.setItem(COURSE_NAME_KEY, nomeCurso);
+        } catch (e) {
+          console.error('Erro ao salvar nome do curso:', e);
+        }
+      }
+    }
+    salvarNomeCurso();
+  }, [nomeCurso, isLoading]);
 
   const toggleDisciplina = useCallback((id: string) => {
     setDisciplinas((prev) => {
@@ -147,10 +168,8 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const toggleSemestre = useCallback((semestre: number) => {
     setDisciplinas((prev) => {
       const discSemestre = prev.filter(d => d.semestre === semestre);
-      // Se não houver disciplinas neste semestre, não faz nada
       if (discSemestre.length === 0) return prev;
 
-      // Verifica se todas do semestre já estão concluídas
       const todasConcluidas = discSemestre.every(d => d.status === 'concluida');
       
       const novaLista = prev.map(d => {
@@ -178,7 +197,6 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           nome: d.nome,
           semestre: d.semestre,
           preRequisitos: preReqs,
-          // Se não tem status definido na importação, calculamos por padrão
           status: d.status || (preReqs.length === 0 ? 'disponivel' : 'bloqueada')
         };
       });
@@ -191,8 +209,8 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
   }, [atualizarTodasDisciplinas]);
 
   const resetarGrade = useCallback(() => {
-    // Restores default "Engenharia de Sistemas"
     setDisciplinas(atualizarTodasDisciplinas(disciplinasIniciais));
+    setNomeCurso('Engenharia de Sistemas'); // Reseta o nome para o padrão também
   }, [atualizarTodasDisciplinas]);
 
   // ESTATÍSTICAS
@@ -202,29 +220,23 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const arvoresBase = useMemo(() => {
     const mapa = new Map<string, DisciplinaNode>();
     
-    // 1. Instanciar todos os nós
     disciplinas.forEach((d) => {
       mapa.set(d.id, { ...d, dependentes: [] });
     });
 
-    // 2. Preencher os dependentes para representar o fluxo "crescente" / árvore
     disciplinas.forEach((d) => {
       d.preRequisitos.forEach((preReqId) => {
         const preReqNode = mapa.get(preReqId);
         const atualNode = mapa.get(d.id);
 
         if (preReqNode && atualNode) {
-          // Se Cálculo I é pré-req de GAAL e de Análise Numérica, 
-          // Análise e GAAL são adicionadas como dependentes de Cálculo I.
           preReqNode.dependentes.push(atualNode);
         }
       });
     });
 
-    // 3. Montar apenas a base (raízes)
     const raizes: DisciplinaNode[] = [];
     mapa.forEach((node) => {
-      // São raízes ("bases") matriciais quando não tem pré-requisitos!
       if (node.preRequisitos.length === 0) {
         raizes.push(node);
       }
@@ -276,19 +288,13 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
 
     const semestresOfertaDois = [1, 3, 5, 6, 8, 10];
     
-    // Auxiliar: essa matéria é oferecida neste semestre civil (1 ou 2)?
     const isOferecidaNesteSemestre = (semestreDaMatriz: number, civilSem: number) => {
       const eSegundoSemestre = semestresOfertaDois.includes(semestreDaMatriz);
       return (eSegundoSemestre && civilSem === 2) || (!eSegundoSemestre && civilSem === 1);
     };
 
-    // Simulador de Timeline baseado em Grafos Direcionados:
-    // Mapeamos quando cada disciplina vai ser cursada.
-    // 0 = Semestre Atual (já cursando)
-    // 1 = Próximo Semestre
     const semesterPlan = new Map<string, number>();
 
-    // Fixamos as que você já está cursando no momento 0 (hoje)
     disciplinas.filter(d => d.status === 'cursando').forEach(d => {
       semesterPlan.set(d.id, 0);
     });
@@ -296,22 +302,15 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     let semestreIndex = 1; 
     let poolParaPlanejar = [...pendentesFuturas];
     const MAX_MATERIAS_POR_SEMESTRE = 6;
-    
-    // Evitar loops infinitos acidentais
     let safelock = 100;
 
     while (poolParaPlanejar.length > 0 && safelock > 0) {
       safelock--;
-      // Qual é o semestre civil (1 ou 2) dessa rodada que estamos planejando no futuro?
       const semCivilDaRodada = (semestreCivilAtual + semestreIndex - 1) % 2 + 1;
 
-      // 1. Procurar na árvore e colher as matérias que os pre-reqs já foram satisfeitos
       const disciplinasLiberadas = poolParaPlanejar.filter(d => {
-        // A oferta deve bater com o semestre civil planejado
         if (!isOferecidaNesteSemestre(d.semestre, semCivilDaRodada)) return false;
 
-        // O 'pai' na nossa árvore DEVE fechar até 1 semestre antes de você iniciar esse 'filho' (ramo)
-        // Isso simula o crescimento ramo por ramo: Calc I antes -> GAAL depois
         const preReqResolvido = d.preRequisitos.every(prId => {
           const pr = disciplinas.find(x => x.id === prId);
           if (pr?.status === 'concluida') return true;
@@ -323,8 +322,6 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         return preReqResolvido;
       });
 
-      // Escolhemos, preferencialmente, as de períodos originais mais baixos primeiro 
-      // Ex: O usuário atrasou Calc, deve planejar Calc antes de pegar matérias do 8º.
       disciplinasLiberadas.sort((a, b) => a.semestre - b.semestre);
       const limitadasAoMaximo = disciplinasLiberadas.slice(0, MAX_MATERIAS_POR_SEMESTRE);
 
@@ -333,15 +330,11 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         poolParaPlanejar = poolParaPlanejar.filter(d => !limitadasAoMaximo.includes(d));
       }
 
-      // Se há matérias para planejar, mas a cota fechou ou os pré-requisitos empacaram neste 
-      // semestre, pule o tempo em +1 para planejar no próximo! 
       if (poolParaPlanejar.length > 0) {
         semestreIndex++;
       }
     }
 
-    // Com o cálculo de grafos e árvore feito, 'semestreIndex' guardou
-    // rigorosamente a quantidade correta de semestres transcorridos
     const semestresTotaisNoFuturo = semestreCivilAtual + semestreIndex;
     const anoCalculado = anoAtual + Math.floor((semestresTotaisNoFuturo - 1) / 2);
     const semestreCalculado = semestresTotaisNoFuturo % 2 === 0 ? 2 : 1;
@@ -363,9 +356,14 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     <DisciplinasContext.Provider
       value={{
         disciplinas,
-        arvoresBase, // Passamos as raízes das árvores para serem consumidas globalmente
+        arvoresBase,
         toggleDisciplina,
         toggleSemestre,
+        
+        // <-- NOVO: Variáveis do Nome do Curso disponíveis globalmente
+        nomeCurso,
+        setNomeCurso,
+        
         atividades,
         setAtividades,
         totalDisciplinas,

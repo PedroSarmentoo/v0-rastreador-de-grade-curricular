@@ -39,7 +39,7 @@ export function Legenda() {
       <LegendaItem 
         icon="lock-closed" 
         color={colors.bloqueada} 
-        label="Bloqueada" 
+        label="Não tem os pré-requisitos necessários" 
       />
     </View>
   );
@@ -48,6 +48,7 @@ export function Legenda() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 24,
     paddingVertical: 16,

@@ -9,8 +9,9 @@ export function EstatisticasHeader() {
     totalDisciplinas, 
     disciplinasConcluidas, 
     disciplinasCursando,
-    progressoPercentual, 
-    anoEstimadoFormatura, // Trocamos aqui
+    progressoPercentual,
+    nomeCurso, // Variável do nome do curso extraída do contexto
+    anoEstimadoFormatura,
     disciplinasDisponiveis,
     disciplinasBloqueadas
   } = useDisciplinas();
@@ -22,7 +23,8 @@ export function EstatisticasHeader() {
         <Text style={styles.title}>Grade Curricular</Text>
       </View>
       
-      <Text style={styles.subtitle}>Engenharia de Sistemas</Text>
+      {/* TÍTULO DINÂMICO APLICADO AQUI */}
+      <Text style={styles.subtitle}>{nomeCurso}</Text>
       
       <View style={styles.progressContainer}>
         <View style={styles.progressBar}>
@@ -40,38 +42,37 @@ export function EstatisticasHeader() {
         <View style={styles.statCard}>
           <Ionicons name="book-outline" size={20} color={colors.disponivel} />
           <Text style={styles.statValue}>{totalDisciplinas}</Text>
-          <Text style={styles.statLabel}>Total</Text>
+          <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Total</Text>
         </View>
         
         <View style={styles.statCard}>
           <Ionicons name="checkmark-circle-outline" size={20} color={colors.concluida} />
           <Text style={styles.statValue}>{disciplinasConcluidas}</Text>
-          <Text style={styles.statLabel}>Concluídas</Text>
+          <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Concluídas</Text>
         </View>
 
         <View style={styles.statCard}>
           <Ionicons name="play-circle-outline" size={20} color={colors.cursando} />
           <Text style={styles.statValue}>{disciplinasCursando}</Text>
-          <Text style={styles.statLabel}>Cursando</Text>
+          <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Cursando</Text>
         </View>
         
-        {/* Card de Formatura Atualizado */}
         <View style={styles.statCard}>
           <Ionicons name="calendar-outline" size={20} color={colors.text} />
           <Text style={styles.statValue}>{anoEstimadoFormatura}</Text>
-          <Text style={styles.statLabel}>Formatura</Text>
+          <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Formatura</Text>
         </View>
 
         <View style={styles.statCard}>
           <Ionicons name="lock-open-outline" size={20} color={colors.disponivel} />
           <Text style={styles.statValue}>{disciplinasDisponiveis}</Text>
-          <Text style={styles.statLabel}>Disponíveis</Text>
+          <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Disponíveis</Text>
         </View>
 
         <View style={styles.statCard}>
           <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
           <Text style={styles.statValue}>{disciplinasBloqueadas}</Text>
-          <Text style={styles.statLabel}>Bloqueadas</Text>
+          <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Bloqueadas</Text>
         </View>
       </View>
     </View>
@@ -134,19 +135,23 @@ const styles = StyleSheet.create({
     flexBasis: '28%',
     backgroundColor: colors.surfaceLight,
     borderRadius: 12,
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 4, // Padding lateral reduzido para caber mais texto
     alignItems: 'center',
     gap: 6,
+    overflow: 'hidden', // Evita que elementos saiam do card
   },
   statValue: {
-    fontSize: 20, // Reduzi um pouco para garantir que o ano (Ex: 2028.1) caiba bem
+    fontSize: 20,
     fontWeight: '700',
     color: colors.text,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 10, // Fonte base ligeiramente menor
     color: colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0, // Removido o espaçamento extra entre letras
+    textAlign: 'center',
+    width: '100%', // Usa 100% da largura para o auto-ajuste funcionar bem
   },
 });
