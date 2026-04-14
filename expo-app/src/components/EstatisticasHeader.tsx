@@ -9,8 +9,7 @@ export function EstatisticasHeader() {
     totalDisciplinas, 
     disciplinasConcluidas, 
     progressoPercentual, 
-    semestresRestantes,
-    // Adicionamos as duas novas variáveis aqui
+    anoEstimadoFormatura, // Trocamos aqui
     disciplinasDisponiveis,
     disciplinasBloqueadas
   } = useDisciplinas();
@@ -49,13 +48,13 @@ export function EstatisticasHeader() {
           <Text style={styles.statLabel}>Concluídas</Text>
         </View>
         
+        {/* Card de Formatura Atualizado */}
         <View style={styles.statCard}>
-          <Ionicons name="time-outline" size={20} color={colors.textMuted} />
-          <Text style={styles.statValue}>{semestresRestantes}</Text>
-          <Text style={styles.statLabel}>Sem. Restantes</Text>
+          <Ionicons name="calendar-outline" size={20} color={colors.text} />
+          <Text style={styles.statValue}>{anoEstimadoFormatura}</Text>
+          <Text style={styles.statLabel}>Formatura</Text>
         </View>
 
-        {/* Novos cards adicionados abaixo */}
         <View style={styles.statCard}>
           <Ionicons name="lock-open-outline" size={20} color={colors.disponivel} />
           <Text style={styles.statValue}>{disciplinasDisponiveis}</Text>
@@ -63,7 +62,6 @@ export function EstatisticasHeader() {
         </View>
 
         <View style={styles.statCard}>
-          {/* Caso não tenha uma cor específica para bloqueada, usamos o textMuted */}
           <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
           <Text style={styles.statValue}>{disciplinasBloqueadas}</Text>
           <Text style={styles.statLabel}>Bloqueadas</Text>
@@ -121,12 +119,12 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap', // Essencial: permite que os cards pulem para a linha de baixo
+    flexWrap: 'wrap',
     gap: 12,
   },
   statCard: {
-    flexGrow: 1, // Faz o card crescer para preencher o espaço restante na linha
-    flexBasis: '28%', // Define um tamanho base para caberem 3 na primeira linha e 2 maiores na segunda
+    flexGrow: 1,
+    flexBasis: '28%',
     backgroundColor: colors.surfaceLight,
     borderRadius: 12,
     padding: 14,
@@ -134,7 +132,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20, // Reduzi um pouco para garantir que o ano (Ex: 2028.1) caiba bem
     fontWeight: '700',
     color: colors.text,
   },

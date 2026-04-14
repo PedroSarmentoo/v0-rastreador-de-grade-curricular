@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Disciplina, StatusDisciplina } from '../types';
 import { disciplinasIniciais } from '../data/disciplinas';
 
-// Chave única para salvar os dados no dispositivo
 const STORAGE_KEY = '@grade_curricular_dados_v1';
 
 interface DisciplinasContextData {
@@ -12,12 +11,12 @@ interface DisciplinasContextData {
   totalDisciplinas: number;
   disciplinasConcluidas: number;
   progressoPercentual: number;
-  semestresRestantes: number;
+  anoEstimadoFormatura: string; // Nova estatística
   disciplinasDisponiveis: number;
   disciplinasBloqueadas: number;
   getDisciplinasPorSemestre: (semestre: number) => Disciplina[];
   semestres: number[];
-  isLoading: boolean; // Útil para mostrar um loading enquanto os dados carregam
+  isLoading: boolean;
 }
 
 const DisciplinasContext = createContext<DisciplinasContextData | undefined>(undefined);
@@ -26,7 +25,6 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>(disciplinasIniciais);
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- LÓGICA DE CÁLCULO DE STATUS ---
   const calcularStatus = useCallback((
     disciplina: Disciplina,
     todasDisciplinas: Disciplina[]
@@ -48,18 +46,17 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     }));
   }, [calcularStatus]);
 
-  // --- PERSISTÊNCIA: CARREGAR DADOS ---
+  // CARREGAR DADOS
   useEffect(() => {
     async function carregarDados() {
       try {
         const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
         if (jsonValue !== null) {
           const dadosSalvos = JSON.parse(jsonValue);
-          // Aplicamos os dados salvos e recalculamos os status (caso a grade tenha mudado)
           setDisciplinas(atualizarTodasDisciplinas(dadosSalvos));
         }
       } catch (e) {
-        console.error('Erro ao carregar os dados do armazenamento local:', e);
+        console.error('Erro ao carregar dados:', e);
       } finally {
         setIsLoading(false);
       }
@@ -67,28 +64,25 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     carregarDados();
   }, [atualizarTodasDisciplinas]);
 
-  // --- PERSISTÊNCIA: SALVAR DADOS ---
+  // SALVAR DADOS
   useEffect(() => {
     async function salvarDados() {
-      if (!isLoading) { // Evita salvar a lista inicial por cima dos dados reais durante o boot
+      if (!isLoading) {
         try {
           const jsonValue = JSON.stringify(disciplinas);
           await AsyncStorage.setItem(STORAGE_KEY, jsonValue);
         } catch (e) {
-          console.error('Erro ao salvar os dados no dispositivo:', e);
+          console.error('Erro ao salvar dados:', e);
         }
       }
     }
     salvarDados();
   }, [disciplinas, isLoading]);
 
-  // --- AÇÃO DE INTERAÇÃO ---
   const toggleDisciplina = useCallback((id: string) => {
     setDisciplinas((prev) => {
       const disciplina = prev.find((d) => d.id === id);
-      if (!disciplina) return prev;
-
-      if (disciplina.status === 'bloqueada') return prev;
+      if (!disciplina || disciplina.status === 'bloqueada') return prev;
 
       const novoStatus: StatusDisciplina = 
         disciplina.status === 'concluida' ? 'disponivel' : 'concluida';
@@ -101,7 +95,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     });
   }, [atualizarTodasDisciplinas]);
 
-  // --- ESTATÍSTICAS E MEMOIZAÇÕES ---
+  // ESTATÍSTICAS
   const totalDisciplinas = disciplinas.length;
   
   const disciplinasConcluidas = useMemo(
@@ -124,14 +118,52 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     [disciplinasConcluidas, totalDisciplinas]
   );
 
-  const semestresRestantes = useMemo(() => {
-    const disciplinasPendentes = disciplinas.filter((d) => d.status !== 'concluida');
-    if (disciplinasPendentes.length === 0) return 0;
+  // CÁLCULO DE FORMATURA ESTIMADA
+const anoEstimadoFormatura = useMemo(() => {
+    const pendentes = disciplinas.filter((d) => d.status !== 'concluida');
+    if (pendentes.length === 0) return "Formado!";
+
+    const agora = new Date();
+    const anoAtual = agora.getFullYear();
+    const mesAtual = agora.getMonth(); 
+    const semestreCivilAtual = mesAtual <= 5 ? 1 : 2;
+
+    // 1. Identificar qual o semestre de oferta de cada disciplina pendente
+    // Baseado na sua regra: 
+    // Oferta no 2º Semestre: 1, 3, 5, 6, 8, 10
+    // Oferta no 1º Semestre: 2, 4, 7, 9 (assumindo que 7 e 9 seguem a lógica oposta)
     
-    const maxSemestre = Math.max(...disciplinas.map((d) => d.semestre));
-    const minSemestrePendente = Math.min(...disciplinasPendentes.map((d) => d.semestre));
+    const semestresOfertaDois = [1, 3, 5, 6, 8, 10];
+
+    // Encontrar a disciplina pendente que pertence ao "último semestre de curso"
+    const ultimoSemestrePendente = Math.max(...pendentes.map(d => d.semestre));
     
-    return Math.max(0, maxSemestre - minSemestrePendente + 1);
+    // Determinar em qual período civil (1 ou 2) esse último semestre é ofertado
+    const periodoOfertaFinal = semestresOfertaDois.includes(ultimoSemestrePendente) ? 2 : 1;
+
+    // 2. Calcular o ano
+    // Se a última matéria é do 10º semestre, ela só abre no 2º semestre do ano.
+    // Precisamos calcular quantos anos faltam para chegar nesse período.
+    
+    // Estimativa baseada em volume (6 por semestre) para saber se a pessoa
+    // vai demorar mais do que o tempo "natural" da grade devido a reprovações
+    const MEDIA_DISC = 6;
+    const semestresPorVolume = Math.ceil(pendentes.length / MEDIA_DISC);
+    
+    let anoCalculado = anoAtual + Math.floor((semestreCivilAtual + semestresPorVolume - 1) / 2);
+    let semestreCalculado = (semestreCivilAtual + semestresPorVolume - 1) % 2 === 0 ? 2 : 1;
+
+    // 3. Ajuste de Safra (Sincronização com a Unimontes)
+    // Se o cálculo por volume diz que você forma em 2028.1, mas a sua última matéria 
+    // pendente só oferta no semestre 2, o app joga para 2028.2.
+    if (semestreCalculado === 1 && periodoOfertaFinal === 2) {
+      semestreCalculado = 2;
+    } else if (semestreCalculado === 2 && periodoOfertaFinal === 1) {
+      anoCalculado += 1;
+      semestreCalculado = 1;
+    }
+
+    return `${anoCalculado}.${semestreCalculado}`;
   }, [disciplinas]);
 
   const semestres = useMemo(
@@ -152,7 +184,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         totalDisciplinas,
         disciplinasConcluidas,
         progressoPercentual,
-        semestresRestantes,
+        anoEstimadoFormatura,
         disciplinasDisponiveis,
         disciplinasBloqueadas,
         getDisciplinasPorSemestre,
