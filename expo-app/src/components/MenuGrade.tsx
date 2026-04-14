@@ -19,7 +19,7 @@ const parseCSV = (csvText: string): any[] => {
   if (cleanText.charCodeAt(0) === 0xFEFF) {
     cleanText = cleanText.substring(1);
   }
-  const lines = cleanText.split('\\n');
+  const lines = cleanText.split('\n');
   if (lines.length < 2) throw new Error('O CSV está vazio ou sem dados.');
   
   const headers = lines[0].split(';').map(h => h.trim());
@@ -51,7 +51,7 @@ const gerarCSV = (disciplinas: any[]): string => {
     const preReqs = (d.preRequisitos || []).join(',');
     return `${d.id};${d.nome};${d.semestre};${preReqs}`;
   });
-  return [header, ...lines].join('\\n');
+  return [header, ...lines].join('\n');
 };
 
 export function MenuGrade() {
