@@ -77,7 +77,7 @@ export function MenuGrade() {
         // @ts-ignore
         const fileUri = FileSystem.cacheDirectory + 'modelo_grade.json';
         // @ts-ignore
-        await FileSystem.writeAsStringAsync(fileUri, MODELO_JSON, { encoding: FileSystem.EncodingType.UTF8 });
+        await FileSystem.writeAsStringAsync(fileUri, MODELO_JSON);
         
         const isAvailable = await Sharing.isAvailableAsync();
         if (isAvailable) {
@@ -116,7 +116,7 @@ export function MenuGrade() {
           }
         } else {
           // @ts-ignore
-          content = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+          content = await FileSystem.readAsStringAsync(asset.uri);
         }
 
         const gradeParseada = JSON.parse(content);
