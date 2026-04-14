@@ -75,7 +75,7 @@ export function MenuGrade() {
         URL.revokeObjectURL(url);
       } else {
         // @ts-ignore
-        const fileUri = FileSystem.documentDirectory + 'modelo_grade.json';
+        const fileUri = FileSystem.cacheDirectory + 'modelo_grade.json';
         // @ts-ignore
         await FileSystem.writeAsStringAsync(fileUri, MODELO_JSON, { encoding: FileSystem.EncodingType.UTF8 });
         
@@ -83,7 +83,8 @@ export function MenuGrade() {
         if (isAvailable) {
           await Sharing.shareAsync(fileUri, {
             mimeType: 'application/json',
-            dialogTitle: 'Baixar Modelo de Grade Curricular'
+            dialogTitle: 'Baixar Modelo de Grade Curricular',
+            UTI: 'public.json'
           });
         } else {
           Alert.alert('Aviso', 'O sistema não suporta o compartilhamento deste arquivo.');
