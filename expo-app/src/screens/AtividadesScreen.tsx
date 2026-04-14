@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Switch, TouchableOpacity, ScrollView, Alert, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Switch, TouchableOpacity, ScrollView, Alert, Platform, Linking, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -7,13 +7,17 @@ import * as Sharing from 'expo-sharing';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { AtividadeItem } from '../types';
+import { accRules, AccRule } from '../data/accs';
 
 export function AtividadesScreen() {
   const { atividades, setAtividades } = useDisciplinas();
 
+  // Modal para escolher a regra de ACC
+  const [modalVisible, setModalVisible] = useState(false);
+  const [regraAccSelecionada, setRegraAccSelecionada] = useState<AccRule | null>(null);
+
   // Inputs para nova ACC
-  const [novaAccTitulo, setNovaAccTitulo] = useState('');
-  const [novaAccHoras, setNovaAccHoras] = useState('');
+  const [novaAccQuantidade, setNovaAccQuantidade] = useState('');
   const [novaAccDoc, setNovaAccDoc] = useState<{ name: string; uri: string } | null>(null);
 
   // Inputs para nova AIEX
@@ -41,26 +45,46 @@ export function AtividadesScreen() {
   };
 
   const handleAddAcc = () => {
-    if (!novaAccTitulo || !novaAccHoras) {
-      Alert.alert('Erro', 'Por favor, preencha o título e as horas.');
+    if (!regraAccSelecionada || !novaAccQuantidade) {
+      Alert.alert('Erro', 'Por favor, selecione o tipo de ACC e preencha a quantidade/horas.');
       return;
     }
-    const limit = 200;
-    const hrs = parseInt(novaAccHoras) || 0;
+    const qtdDigitada = parseFloat(novaAccQuantidade) || 0;
     
-    if (hrs <= 0) return;
+    if (qtdDigitada <= 0) return;
+
+    // Calcula horas provisórias, a regra de negócio do curso aplica ch_maxima.
+    let horasCalculadas = qtdDigitada * regraAccSelecionada.multiplicador;
+    
+    // Validar se o total gerado para essa modalidade não ultrapassa a ch_maxima (considerando as já lançadas)
+    const horasJaLancadasNestaRegra = (atividades.listaAcc || [])
+      .filter(a => a.modalidadeId === regraAccSelecionada.id)
+      .reduce((soma, item) => soma + item.horas, 0);
+      
+    if (horasJaLancadasNestaRegra >= regraAccSelecionada.ch_maxima) {
+      Alert.alert('Aviso', `Você já atingiu a carga horária máxima (${regraAccSelecionada.ch_maxima} horas) permitida para esta modalidade.`);
+      return;
+    }
+    
+    if (horasJaLancadasNestaRegra + horasCalculadas > regraAccSelecionada.ch_maxima) {
+      const margemDisponivel = regraAccSelecionada.ch_maxima - horasJaLancadasNestaRegra;
+      horasCalculadas = margemDisponivel; // Cap no limite maximo restante
+      Alert.alert('Informação', `Foram computadas apenas ${margemDisponivel} horas para respeitar o limite máximo da modalidade de ${regraAccSelecionada.ch_maxima} horas.`);
+    }
 
     const nova: AtividadeItem = {
       id: Date.now().toString(),
-      titulo: novaAccTitulo,
-      horas: hrs,
+      titulo: regraAccSelecionada.modalidade,
+      horas: parseFloat(horasCalculadas.toFixed(2)),
       nomeDocumento: novaAccDoc?.name,
       uriDocumento: novaAccDoc?.uri,
+      modalidadeId: regraAccSelecionada.id,
+      quantidadeOriginal: qtdDigitada,
     };
 
     setAtividades(prev => ({ ...prev, listaAcc: [...(prev.listaAcc || []), nova] }));
-    setNovaAccTitulo('');
-    setNovaAccHoras('');
+    setRegraAccSelecionada(null);
+    setNovaAccQuantidade('');
     setNovaAccDoc(null);
   };
 
@@ -169,22 +193,28 @@ export function AtividadesScreen() {
 
           {/* Form Create */}
           <View style={styles.formCard}>
-            <TextInput 
-              style={styles.input} 
-              placeholder="Ex: Minicurso de Python" 
-              placeholderTextColor={colors.textMuted}
-              value={novaAccTitulo}
-              onChangeText={setNovaAccTitulo}
-            />
+            <TouchableOpacity 
+              style={styles.selectBtn} 
+              onPress={() => setModalVisible(true)}
+            >
+              <Text 
+                style={[styles.selectBtnText, !regraAccSelecionada && { color: colors.textMuted }]}
+                numberOfLines={1}
+              >
+                {regraAccSelecionada ? regraAccSelecionada.modalidade : 'Selecione o Tipo de ACC...'}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+            
             <View style={styles.rowForm}>
               <TextInput 
-                style={[styles.input, { flex: 1 }]} 
-                placeholder="Horas (Ex: 20)" 
+                style={[styles.input, { flex: 1, marginBottom: 0 }]} 
+                placeholder={regraAccSelecionada?.unidadeEntrada === 'quantidade' ? 'Quantidade (Ex: 2)' : 'Horas (Ex: 20)'} 
                 placeholderTextColor={colors.textMuted}
                 keyboardType="numeric"
-                value={novaAccHoras}
-                onChangeText={setNovaAccHoras}
-                maxLength={3}
+                value={novaAccQuantidade}
+                onChangeText={setNovaAccQuantidade}
+                maxLength={4}
               />
               <TouchableOpacity 
                 style={[styles.fileBtn, novaAccDoc && { borderColor: colors.concluida }]} 
@@ -192,10 +222,17 @@ export function AtividadesScreen() {
               >
                 <Ionicons name={novaAccDoc ? "checkmark-circle" : "attach"} size={20} color={novaAccDoc ? colors.concluida : colors.text} />
                 <Text style={[styles.fileBtnText, novaAccDoc && { color: colors.concluida }]}>
-                  {novaAccDoc ? 'Documento Anexo' : 'Anexar'}
+                  {novaAccDoc ? 'Anexado' : 'Anexar'}
                 </Text>
               </TouchableOpacity>
             </View>
+            
+            {regraAccSelecionada && (
+              <Text style={styles.ruleInfoText}>
+                Regra: {regraAccSelecionada.paridadeDescricao} {' | '} Máx: {regraAccSelecionada.ch_maxima_descricao}
+              </Text>
+            )}
+
             <TouchableOpacity style={styles.addBtn} onPress={handleAddAcc}>
               <Text style={styles.addBtnText}>Cadastrar ACC</Text>
             </TouchableOpacity>
@@ -279,6 +316,48 @@ export function AtividadesScreen() {
         </View>
 
       </ScrollView>
+
+      {/* Modal de Seleção de Regra ACC */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecione a Modalidade</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, gap: 12 }}>
+              {accRules.map(rule => (
+                <TouchableOpacity
+                  key={rule.id}
+                  style={[
+                    styles.ruleOptionBtn,
+                    regraAccSelecionada?.id === rule.id && { borderColor: colors.disponivel, backgroundColor: colors.disponivelBg }
+                  ]}
+                  onPress={() => {
+                    setRegraAccSelecionada(rule);
+                    setModalVisible(false);
+                  }}
+                >
+                  <Text style={[styles.ruleOptionTitle, regraAccSelecionada?.id === rule.id && { color: colors.disponivel }]}>
+                    {rule.modalidade}
+                  </Text>
+                  <Text style={styles.ruleOptionDesc}>
+                    {rule.paridadeDescricao} • Máx: {rule.ch_maxima_descricao}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -444,5 +523,70 @@ const styles = StyleSheet.create({
   },
   delButton: {
     padding: 8,
+  },
+  selectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 8,
+  },
+  selectBtnText: {
+    color: colors.text,
+    fontSize: 14,
+    flex: 1,
+  },
+  ruleInfoText: {
+    fontSize: 12,
+    color: colors.textBody,
+    marginTop: 4,
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  ruleOptionBtn: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 14,
+  },
+  ruleOptionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  ruleOptionDesc: {
+    fontSize: 13,
+    color: colors.textMuted,
   }
 });
