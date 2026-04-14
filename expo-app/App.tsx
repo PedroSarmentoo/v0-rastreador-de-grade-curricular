@@ -1,9 +1,11 @@
 import 'react-native-url-polyfill/auto';
 import React, { useState } from 'react';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'; // <-- Importei o useSafeAreaInsets aqui
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font'; // <-- Importação adicionada para corrigir os ícones na Web
+
 import { DisciplinasProvider } from './src/contexts/DisciplinasContext';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { AtividadesScreen } from './src/screens/AtividadesScreen';
@@ -83,6 +85,14 @@ function MainNavigator() {
 }
 
 export default function App() {
+  // <-- Lógica adicionada para carregar a fonte dos ícones
+  const [fontsLoaded] = useFonts(Ionicons.font);
+
+  // Se a fonte ainda não carregou, não renderiza nada (evita os quadrados em branco)
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
