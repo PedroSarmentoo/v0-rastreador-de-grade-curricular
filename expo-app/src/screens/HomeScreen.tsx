@@ -6,7 +6,6 @@ import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { EstatisticasHeader } from '../components/EstatisticasHeader';
 import { Legenda } from '../components/Legenda';
 import { SemestreSection } from '../components/SemestreSection';
-import { MenuGrade } from '../components/MenuGrade';
 
 export function HomeScreen() {
   const { semestres } = useDisciplinas();
@@ -18,7 +17,6 @@ export function HomeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <MenuGrade />
         <EstatisticasHeader />
         <Legenda />
         
