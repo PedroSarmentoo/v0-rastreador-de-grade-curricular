@@ -201,10 +201,12 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
   buttonAction: {
-    flex: 1,
+    flexGrow: 1,
+    minWidth: '45%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -212,6 +214,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 8,
     gap: 6,
   },
