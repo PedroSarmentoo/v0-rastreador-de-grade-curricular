@@ -7,26 +7,38 @@ import * as Sharing from 'expo-sharing';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { colors } from '../theme/colors';
 
-const MODELO_JSON = `[
-  {
-    "id": "mat1",
-    "nome": "Matemática Básica",
-    "semestre": 1,
-    "preRequisitos": []
-  },
-  {
-    "id": "prog1",
-    "nome": "Programação I",
-    "semestre": 1,
-    "preRequisitos": []
-  },
-  {
-    "id": "prog2",
-    "nome": "Programação Orientada a Objetos",
-    "semestre": 2,
-    "preRequisitos": ["prog1"]
+const MODELO_CSV = `id,nome,semestre,preRequisitos
+mat1,Matemática Básica,1,
+prog1,Programação I,1,
+prog2,Programação Orientada a Objetos,2,prog1
+prog3,Programação Avançada,3,prog1;prog2`;
+
+const parseCSV = (csvText: string): any[] => {
+  const lines = csvText.trim().split('\\n');
+  if (lines.length < 2) throw new Error('O CSV está vazio ou sem dados.');
+  
+  const headers = lines[0].split(',').map(h => h.trim());
+  const result = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const currentLine = lines[i].split(',');
+    if (currentLine.length < headers.length) continue; // Pula linhas vazias
+    
+    const obj: any = {};
+    headers.forEach((header, index) => {
+      const val = currentLine[index].trim();
+      if (header === 'semestre') {
+        obj[header] = parseInt(val, 10);
+      } else if (header === 'preRequisitos') {
+        obj[header] = val ? val.split(';').map(p => p.trim()) : [];
+      } else {
+        obj[header] = val;
+      }
+    });
+    result.push(obj);
   }
-]`;
+  return result;
+};
 
 export function MenuGrade() {
   const { importarGrade, resetarGrade } = useDisciplinas();
@@ -66,11 +78,11 @@ export function MenuGrade() {
   const handleDownloadModelo = async () => {
     try {
       if (Platform.OS === 'web') {
-        const blob = new Blob([MODELO_JSON], { type: 'application/json' });
+        const blob = new Blob([MODELO_CSV], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'modelo_grade.json';
+        a.download = 'modelo_grade.csv';
         a.click();
         URL.revokeObjectURL(url);
       } else if (Platform.OS === 'android') {
@@ -80,25 +92,25 @@ export function MenuGrade() {
           // @ts-ignore
           const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
             permissions.directoryUri,
-            'modelo_grade.json',
-            'application/json'
+            'modelo_grade.csv',
+            'text/csv'
           );
           // @ts-ignore
-          await FileSystem.writeAsStringAsync(fileUri, MODELO_JSON);
+          await FileSystem.writeAsStringAsync(fileUri, MODELO_CSV);
           Alert.alert('Sucesso', 'O modelo foi salvo no seu dispositivo!');
         }
       } else {
         // @ts-ignore
-        const fileUri = FileSystem.cacheDirectory + 'modelo_grade.json';
+        const fileUri = FileSystem.cacheDirectory + 'modelo_grade.csv';
         // @ts-ignore
-        await FileSystem.writeAsStringAsync(fileUri, MODELO_JSON);
+        await FileSystem.writeAsStringAsync(fileUri, MODELO_CSV);
         
         const isAvailable = await Sharing.isAvailableAsync();
         if (isAvailable) {
           await Sharing.shareAsync(fileUri, {
-            mimeType: 'application/json',
+            mimeType: 'text/csv',
             dialogTitle: 'Salvar Modelo na pasta Arquivos',
-            UTI: 'public.json'
+            UTI: 'public.comma-separated-values-text'
           });
         } else {
           Alert.alert('Aviso', 'O sistema não suporta manipular este arquivo.');
@@ -113,7 +125,7 @@ export function MenuGrade() {
   const handleImportGrade = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/json',
+        type: 'text/csv',
         copyToCacheDirectory: true,
       });
 
@@ -133,7 +145,7 @@ export function MenuGrade() {
           content = await FileSystem.readAsStringAsync(asset.uri);
         }
 
-        const gradeParseada = JSON.parse(content);
+        const gradeParseada = parseCSV(content);
         
         const executarImportacao = () => {
           try {
