@@ -95,17 +95,17 @@ export function MenuGrade() {
                 try {
                   importarGrade(gradeParseada);
                   Alert.alert('Sucesso', 'A nova grade foi importada com sucesso!');
-                } catch (e) {
-                  Alert.alert('Erro', 'Formato JSON inválido. Verifique o arquivo.');
+                } catch (e: any) {
+                  Alert.alert('Erro', 'Grade com propriedades inválidas. ' + (e.message || ''));
                 }
               }
             }
           ]
         );
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro ao importar grade:', err);
-      Alert.alert('Erro', 'Não foi possível ler o arquivo JSON.');
+      Alert.alert('Erro no arquivo', 'Falha ao processar o arquivo: ' + (err.message || String(err)));
     }
   };
 
