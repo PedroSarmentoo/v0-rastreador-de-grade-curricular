@@ -11,7 +11,7 @@ interface DisciplinasContextData {
   totalDisciplinas: number;
   disciplinasConcluidas: number;
   progressoPercentual: number;
-  anoEstimadoFormatura: string; // Nova estatística
+  anoEstimadoFormatura: string;
   disciplinasDisponiveis: number;
   disciplinasBloqueadas: number;
   getDisciplinasPorSemestre: (semestre: number) => Disciplina[];
@@ -25,11 +25,13 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>(disciplinasIniciais);
   const [isLoading, setIsLoading] = useState(true);
 
+  // CORREÇÃO: Adicionado o check para 'cursando' no cálculo automático
   const calcularStatus = useCallback((
     disciplina: Disciplina,
     todasDisciplinas: Disciplina[]
   ): StatusDisciplina => {
     if (disciplina.status === 'concluida') return 'concluida';
+    if (disciplina.status === 'cursando') return 'cursando'; // <- ESSENCIAL: Mantém o estado azul
     
     const preRequisitosAtendidos = disciplina.preRequisitos.every((preReqId) => {
       const preReq = todasDisciplinas.find((d) => d.id === preReqId);
@@ -84,8 +86,11 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
       const disciplina = prev.find((d) => d.id === id);
       if (!disciplina || disciplina.status === 'bloqueada') return prev;
 
-      const novoStatus: StatusDisciplina = 
-        disciplina.status === 'concluida' ? 'disponivel' : 'concluida';
+      let novoStatus: StatusDisciplina;
+      
+      if (disciplina.status === 'disponivel') novoStatus = 'cursando';
+      else if (disciplina.status === 'cursando') novoStatus = 'concluida';
+      else novoStatus = 'disponivel';
 
       const novaLista = prev.map((d) =>
         d.id === id ? { ...d, status: novoStatus } : d
@@ -118,51 +123,46 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     [disciplinasConcluidas, totalDisciplinas]
   );
 
-  // CÁLCULO DE FORMATURA ESTIMADA
-const anoEstimadoFormatura = useMemo(() => {
-    const pendentes = disciplinas.filter((d) => d.status !== 'concluida');
-    if (pendentes.length === 0) return "Formado!";
+  // CÁLCULO DE FORMATURA COM AJUSTE DE SAFRA UNIMONTES
+  const anoEstimadoFormatura = useMemo(() => {
+    const pendentesVerdadeiras = disciplinas.filter((d) => 
+      d.status !== 'concluida' && d.status !== 'cursando'
+    );
 
+    if (pendentesVerdadeiras.length === 0 && disciplinas.some(d => d.status === 'cursando')) {
+       const agora = new Date();
+       const semestreCivilAtual = agora.getMonth() <= 5 ? 1 : 2;
+       return `${agora.getFullYear()}.${semestreCivilAtual}`;
+    }
+    
+    if (pendentesVerdadeiras.length === 0) return "Formado!";
+
+    const MEDIA_DISC = 6;
+    const semestresFaltantesPosAtual = Math.ceil(pendentesVerdadeiras.length / MEDIA_DISC);
+    
     const agora = new Date();
     const anoAtual = agora.getFullYear();
-    const mesAtual = agora.getMonth(); 
+    const mesAtual = agora.getMonth();
     const semestreCivilAtual = mesAtual <= 5 ? 1 : 2;
-
-    // 1. Identificar qual o semestre de oferta de cada disciplina pendente
-    // Baseado na sua regra: 
-    // Oferta no 2º Semestre: 1, 3, 5, 6, 8, 10
-    // Oferta no 1º Semestre: 2, 4, 7, 9 (assumindo que 7 e 9 seguem a lógica oposta)
     
+    // O semestre atual conta como 1
+    const totalSemestres = semestresFaltantesPosAtual + 1;
+
+    let anoCalculado = anoAtual + Math.floor((semestreCivilAtual + totalSemestres - 2) / 2);
+    let semestreCalculado = (semestreCivilAtual + totalSemestres - 1) % 2 === 0 ? 2 : 1;
+
+    // AJUSTE DE OFERTA UNIMONTES
     const semestresOfertaDois = [1, 3, 5, 6, 8, 10];
-
-    // Encontrar a disciplina pendente que pertence ao "último semestre de curso"
-    const ultimoSemestrePendente = Math.max(...pendentes.map(d => d.semestre));
-    
-    // Determinar em qual período civil (1 ou 2) esse último semestre é ofertado
+    const ultimoSemestrePendente = Math.max(...pendentesVerdadeiras.map(d => d.semestre));
     const periodoOfertaFinal = semestresOfertaDois.includes(ultimoSemestrePendente) ? 2 : 1;
 
-    // 2. Calcular o ano
-    // Se a última matéria é do 10º semestre, ela só abre no 2º semestre do ano.
-    // Precisamos calcular quantos anos faltam para chegar nesse período.
-    
-    // Estimativa baseada em volume (6 por semestre) para saber se a pessoa
-    // vai demorar mais do que o tempo "natural" da grade devido a reprovações
-    const MEDIA_DISC = 6;
-    const semestresPorVolume = Math.ceil(pendentes.length / MEDIA_DISC);
-    
-    let anoCalculado = anoAtual + Math.floor((semestreCivilAtual + semestresPorVolume - 1) / 2);
-    let semestreCalculado = (semestreCivilAtual + semestresPorVolume - 1) % 2 === 0 ? 2 : 1;
-
-    // 3. Ajuste de Safra (Sincronização com a Unimontes)
-    // Se o cálculo por volume diz que você forma em 2028.1, mas a sua última matéria 
-    // pendente só oferta no semestre 2, o app joga para 2028.2.
     if (semestreCalculado === 1 && periodoOfertaFinal === 2) {
       semestreCalculado = 2;
     } else if (semestreCalculado === 2 && periodoOfertaFinal === 1) {
       anoCalculado += 1;
       semestreCalculado = 1;
     }
-
+    
     return `${anoCalculado}.${semestreCalculado}`;
   }, [disciplinas]);
 

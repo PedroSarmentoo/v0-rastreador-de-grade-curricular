@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Disciplina } from '../types';
 import { colors } from '../theme/colors';
+import { Disciplina } from '../types';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 
 interface Props {
@@ -10,152 +10,115 @@ interface Props {
 }
 
 export function DisciplinaCard({ disciplina }: Props) {
-  const { toggleDisciplina, disciplinas } = useDisciplinas();
-  const { id, nome, status, preRequisitos } = disciplina;
+  const { toggleDisciplina } = useDisciplinas();
 
-  const getCardStyle = () => {
-    switch (status) {
+  const getStatusConfig = () => {
+    switch (disciplina.status) {
       case 'concluida':
         return {
-          backgroundColor: colors.concluidaBg,
-          borderColor: colors.concluidaBorder,
+          icon: 'checkmark-circle' as const,
+          color: colors.concluida, // Verde
+          label: 'CONCLUÍDA',
+          opacity: 1
         };
-      case 'disponivel':
+      case 'cursando':
         return {
-          backgroundColor: colors.disponivelBg,
-          borderColor: colors.disponivelBorder,
+          icon: 'time' as const, 
+          color: '#F1C40F', // Amarelo vibrante
+          label: 'CURSANDO',
+          opacity: 1
         };
-      default:
+      case 'bloqueada':
         return {
-          backgroundColor: colors.bloqueadaBg,
-          borderColor: colors.bloqueadaBorder,
+          icon: 'lock-closed' as const,
+          color: colors.textMuted,
+          label: 'BLOQUEADA',
+          opacity: 0.5
+        };
+      default: // disponivel
+        return {
+          icon: 'radio-button-off' as const,
+          color: colors.disponivel, // Azul claro/Borda
+          label: 'DISPONÍVEL',
+          opacity: 1
         };
     }
   };
 
-  const getIconName = (): keyof typeof Ionicons.glyphMap => {
-    switch (status) {
-      case 'concluida':
-        return 'checkmark-circle';
-      case 'disponivel':
-        return 'ellipse-outline';
-      default:
-        return 'lock-closed';
-    }
-  };
-
-  const getIconColor = () => {
-    switch (status) {
-      case 'concluida':
-        return colors.concluida;
-      case 'disponivel':
-        return colors.disponivel;
-      default:
-        return colors.bloqueada;
-    }
-  };
-
-  const getPreRequisitosNomes = () => {
-    if (preRequisitos.length === 0) return null;
-    
-    const nomes = preRequisitos
-      .map((preReqId) => disciplinas.find((d) => d.id === preReqId)?.nome)
-      .filter(Boolean)
-      .join(', ');
-    
-    return nomes;
-  };
-
-  const preReqNomes = getPreRequisitosNomes();
-  const isDisabled = status === 'bloqueada';
+  const config = getStatusConfig();
 
   return (
     <TouchableOpacity
-      onPress={() => toggleDisciplina(id)}
-      disabled={isDisabled}
+      style={[
+        styles.container,
+        { 
+          borderColor: config.color,
+          opacity: config.opacity,
+          // Efeito de "preenchimento" leve quando concluída ou cursando
+          backgroundColor: disciplina.status === 'concluida' ? `${colors.concluida}10` : 
+                           disciplina.status === 'cursando' ? '#F1C40F10' : 
+                           colors.surfaceLight
+        }
+      ]}
+      onPress={() => toggleDisciplina(disciplina.id)}
+      disabled={disciplina.status === 'bloqueada'}
       activeOpacity={0.7}
-      style={[styles.card, getCardStyle()]}
     >
-      <View style={styles.header}>
-        <Ionicons name={getIconName()} size={22} color={getIconColor()} />
-        <Text 
-          style={[
-            styles.nome,
-            status === 'concluida' && styles.nomeRiscado,
-            status === 'bloqueada' && styles.nomeBloqueado,
-          ]}
-          numberOfLines={2}
-        >
-          {nome}
-        </Text>
-      </View>
-      
-      {preReqNomes && (
-        <View style={styles.preRequisitos}>
-          <Ionicons name="git-branch-outline" size={12} color={colors.textMuted} />
-          <Text style={styles.preRequisitosText} numberOfLines={1}>
-            {preReqNomes}
+      <View style={styles.content}>
+        <View style={[styles.iconContainer, { backgroundColor: `${config.color}20` }]}>
+          <Ionicons name={config.icon} size={22} color={config.color} />
+        </View>
+        
+        <View style={styles.textContainer}>
+          <Text 
+            style={[
+              styles.nome, 
+              disciplina.status === 'concluida' && { color: colors.textMuted, textDecorationLine: 'line-through' }
+            ]} 
+            numberOfLines={2} 
+            adjustsFontSizeToFit
+          >
+            {disciplina.nome}
+          </Text>
+          <Text style={[styles.statusLabel, { color: config.color }]}>
+            {config.label}
           </Text>
         </View>
-      )}
-
-      <View style={styles.statusBadge}>
-        <Text style={[styles.statusText, { color: getIconColor() }]}>
-          {status === 'concluida' ? 'Concluida' : status === 'disponivel' ? 'Disponivel' : 'Bloqueada'}
-        </Text>
       </View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    margin: 6,
+  container: {
+    borderRadius: 14,
     padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    minHeight: 110,
+    borderWidth: 1.5,
+    marginBottom: 4,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginBottom: 8,
-  },
-  nome: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    lineHeight: 20,
-  },
-  nomeRiscado: {
-    textDecorationLine: 'line-through',
-    opacity: 0.8,
-  },
-  nomeBloqueado: {
-    opacity: 0.5,
-  },
-  preRequisitos: {
+  content: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 'auto',
-    marginBottom: 8,
+    gap: 12,
   },
-  preRequisitosText: {
+  iconContainer: {
+    padding: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textContainer: {
     flex: 1,
-    fontSize: 11,
-    color: colors.textMuted,
   },
-  statusBadge: {
-    marginTop: 'auto',
+  nome: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 2,
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '500',
-    textTransform: 'uppercase',
+  statusLabel: {
+    fontSize: 10,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
 });

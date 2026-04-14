@@ -1,4 +1,4 @@
-export type StatusDisciplina = 'concluida' | 'disponivel' | 'bloqueada';
+export type StatusDisciplina = 'concluida' | 'disponivel' | 'bloqueada' |'cursando';
 
 export interface Disciplina {
   id: string;

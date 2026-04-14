@@ -5,6 +5,8 @@ export const colors = {
   
   text: '#f0f0f5',
   textMuted: '#8888a0',
+
+  cursando: '#3498db',
   
   concluida: '#22c55e',
   concluidaBg: 'rgba(34, 197, 94, 0.15)',
