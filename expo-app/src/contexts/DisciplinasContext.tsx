@@ -1,8 +1,11 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Disciplina, StatusDisciplina } from '../types';
 import { disciplinasIniciais } from '../data/disciplinas';
 
-// 1. Adicionamos as novas variáveis na Interface
+// Chave única para salvar os dados no dispositivo
+const STORAGE_KEY = '@grade_curricular_dados_v1';
+
 interface DisciplinasContextData {
   disciplinas: Disciplina[];
   toggleDisciplina: (id: string) => void;
@@ -10,17 +13,20 @@ interface DisciplinasContextData {
   disciplinasConcluidas: number;
   progressoPercentual: number;
   semestresRestantes: number;
-  disciplinasDisponiveis: number; // <- NOVO
-  disciplinasBloqueadas: number;  // <- NOVO
+  disciplinasDisponiveis: number;
+  disciplinasBloqueadas: number;
   getDisciplinasPorSemestre: (semestre: number) => Disciplina[];
   semestres: number[];
+  isLoading: boolean; // Útil para mostrar um loading enquanto os dados carregam
 }
 
 const DisciplinasContext = createContext<DisciplinasContextData | undefined>(undefined);
 
 export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>(disciplinasIniciais);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // --- LÓGICA DE CÁLCULO DE STATUS ---
   const calcularStatus = useCallback((
     disciplina: Disciplina,
     todasDisciplinas: Disciplina[]
@@ -42,15 +48,48 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     }));
   }, [calcularStatus]);
 
+  // --- PERSISTÊNCIA: CARREGAR DADOS ---
+  useEffect(() => {
+    async function carregarDados() {
+      try {
+        const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
+        if (jsonValue !== null) {
+          const dadosSalvos = JSON.parse(jsonValue);
+          // Aplicamos os dados salvos e recalculamos os status (caso a grade tenha mudado)
+          setDisciplinas(atualizarTodasDisciplinas(dadosSalvos));
+        }
+      } catch (e) {
+        console.error('Erro ao carregar os dados do armazenamento local:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    carregarDados();
+  }, [atualizarTodasDisciplinas]);
+
+  // --- PERSISTÊNCIA: SALVAR DADOS ---
+  useEffect(() => {
+    async function salvarDados() {
+      if (!isLoading) { // Evita salvar a lista inicial por cima dos dados reais durante o boot
+        try {
+          const jsonValue = JSON.stringify(disciplinas);
+          await AsyncStorage.setItem(STORAGE_KEY, jsonValue);
+        } catch (e) {
+          console.error('Erro ao salvar os dados no dispositivo:', e);
+        }
+      }
+    }
+    salvarDados();
+  }, [disciplinas, isLoading]);
+
+  // --- AÇÃO DE INTERAÇÃO ---
   const toggleDisciplina = useCallback((id: string) => {
     setDisciplinas((prev) => {
       const disciplina = prev.find((d) => d.id === id);
       if (!disciplina) return prev;
 
-      // Se estiver bloqueada, nao pode alterar
       if (disciplina.status === 'bloqueada') return prev;
 
-      // Toggle entre concluida e disponivel
       const novoStatus: StatusDisciplina = 
         disciplina.status === 'concluida' ? 'disponivel' : 'concluida';
 
@@ -58,11 +97,11 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         d.id === id ? { ...d, status: novoStatus } : d
       );
 
-      // Recalcular status de todas as disciplinas
       return atualizarTodasDisciplinas(novaLista);
     });
   }, [atualizarTodasDisciplinas]);
 
+  // --- ESTATÍSTICAS E MEMOIZAÇÕES ---
   const totalDisciplinas = disciplinas.length;
   
   const disciplinasConcluidas = useMemo(
@@ -70,7 +109,6 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     [disciplinas]
   );
 
-  // 2. Criamos os cálculos para as novas variáveis
   const disciplinasDisponiveis = useMemo(
     () => disciplinas.filter((d) => d.status === 'disponivel').length,
     [disciplinas]
@@ -82,7 +120,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
   );
 
   const progressoPercentual = useMemo(
-    () => Math.round((disciplinasConcluidas / totalDisciplinas) * 100),
+    () => totalDisciplinas > 0 ? Math.round((disciplinasConcluidas / totalDisciplinas) * 100) : 0,
     [disciplinasConcluidas, totalDisciplinas]
   );
 
@@ -93,7 +131,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     const maxSemestre = Math.max(...disciplinas.map((d) => d.semestre));
     const minSemestrePendente = Math.min(...disciplinasPendentes.map((d) => d.semestre));
     
-    return maxSemestre - minSemestrePendente + 1;
+    return Math.max(0, maxSemestre - minSemestrePendente + 1);
   }, [disciplinas]);
 
   const semestres = useMemo(
@@ -108,7 +146,6 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
 
   return (
     <DisciplinasContext.Provider
-      // 3. Exportamos as variáveis no value do Provider
       value={{
         disciplinas,
         toggleDisciplina,
@@ -120,6 +157,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         disciplinasBloqueadas,
         getDisciplinasPorSemestre,
         semestres,
+        isLoading,
       }}
     >
       {children}
