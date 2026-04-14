@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Switch, TouchableOpacity, ScrollView, Alert, Platform, Linking, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+// 1. O Ionicons foi embora. Bem-vindo, Lucide!
+import { Files, ChevronDown, CheckCircle, Paperclip, FileText, Trash2, X } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { colors } from '../theme/colors';
@@ -134,7 +135,6 @@ export function AtividadesScreen() {
     }
     try {
       if (Platform.OS === 'web') {
-        // Na web, podemos tentar abrir a URI diretamente (se for blob, base64 ou URL online)
         window.open(uri, '_blank');
         return;
       }
@@ -143,7 +143,6 @@ export function AtividadesScreen() {
       if (isAvailable) {
         await Sharing.shareAsync(uri);
       } else {
-        // Fallback pro Linking caso o sharing falhe e seja ambiente mobile nativo suportado ou url online
         const supported = await Linking.canOpenURL(uri);
         if (supported) {
           await Linking.openURL(uri);
@@ -168,14 +167,14 @@ export function AtividadesScreen() {
               style={styles.docBadge}
               onPress={() => handleOpenDocument(item.uriDocumento)}
             >
-              <Ionicons name="document-text-outline" size={14} color={colors.disponivel} />
+              <FileText size={14} color={colors.disponivel} />
               <Text style={styles.docName} numberOfLines={1}>Ver Anexo</Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
       <TouchableOpacity onPress={onRemover} style={styles.delButton}>
-        <Ionicons name="trash-outline" size={20} color={'#ff4444'} />
+        <Trash2 size={20} color={'#ff4444'} />
       </TouchableOpacity>
     </View>
   );
@@ -185,7 +184,7 @@ export function AtividadesScreen() {
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         
         <View style={styles.header}>
-          <Ionicons name="documents-outline" size={28} color={colors.disponivel} />
+          <Files size={28} color={colors.disponivel} />
           <Text style={styles.title}>Atividades Complementares</Text>
         </View>
 
@@ -212,7 +211,7 @@ export function AtividadesScreen() {
               >
                 {regraAccSelecionada ? regraAccSelecionada.modalidade : 'Selecione o Tipo de ACC...'}
               </Text>
-              <Ionicons name="chevron-down" size={20} color={colors.textMuted} />
+              <ChevronDown size={20} color={colors.textMuted} />
             </TouchableOpacity>
 
             <TextInput 
@@ -237,7 +236,11 @@ export function AtividadesScreen() {
                 style={[styles.fileBtn, novaAccDoc && { borderColor: colors.concluida }]} 
                 onPress={() => pickDocument(setNovaAccDoc)}
               >
-                <Ionicons name={novaAccDoc ? "checkmark-circle" : "attach"} size={20} color={novaAccDoc ? colors.concluida : colors.text} />
+                {novaAccDoc ? (
+                  <CheckCircle size={20} color={colors.concluida} />
+                ) : (
+                  <Paperclip size={20} color={colors.text} />
+                )}
                 <Text style={[styles.fileBtnText, novaAccDoc && { color: colors.concluida }]}>
                   {novaAccDoc ? 'Anexado' : 'Anexar'}
                 </Text>
@@ -308,7 +311,11 @@ export function AtividadesScreen() {
                     style={[styles.fileBtn, novaAiexDoc && { borderColor: colors.concluida }]} 
                     onPress={() => pickDocument(setNovaAiexDoc)}
                   >
-                    <Ionicons name={novaAiexDoc ? "checkmark-circle" : "attach"} size={20} color={novaAiexDoc ? colors.concluida : colors.text} />
+                    {novaAiexDoc ? (
+                      <CheckCircle size={20} color={colors.concluida} />
+                    ) : (
+                      <Paperclip size={20} color={colors.text} />
+                    )}
                     <Text style={[styles.fileBtnText, novaAiexDoc && { color: colors.concluida }]}>
                        {novaAiexDoc ? 'Documento Anexo' : 'Anexar'}
                     </Text>
@@ -346,7 +353,7 @@ export function AtividadesScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Selecione a Modalidade</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
-                <Ionicons name="close" size={24} color={colors.text} />
+                <X size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, gap: 12 }}>
@@ -394,6 +401,7 @@ export function AtividadesScreen() {
   );
 }
 
+// ... Mantive os mesmos estilos! 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// 1. Trocamos Ionicons por ícones do Lucide
+import { UploadCloud, Share, Download, RefreshCw } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -14,7 +15,6 @@ prog2;Programação Orientada a Objetos;2;prog1
 prog3;Programação Avançada;3;prog1,prog2`;
 
 const parseCSV = (csvText: string): any[] => {
-  // Remove o BOM (Byte Order Mark) invisível caso o Excel tenha incluído ao salvar
   let cleanText = csvText.trim();
   if (cleanText.charCodeAt(0) === 0xFEFF) {
     cleanText = cleanText.substring(1);
@@ -27,7 +27,7 @@ const parseCSV = (csvText: string): any[] => {
   
   for (let i = 1; i < lines.length; i++) {
     const currentLine = lines[i].split(';');
-    if (currentLine.length < headers.length) continue; // Pula linhas vazias
+    if (currentLine.length < headers.length) continue;
     
     const obj: any = {};
     headers.forEach((header, index) => {
@@ -74,9 +74,7 @@ export function MenuGrade() {
 
     if (Platform.OS === 'web') {
       const confirmou = window.confirm('Tem certeza que deseja restaurar a grade de Engenharia de Sistemas? Seu progresso e estrutura atual serão apagados.');
-      if (confirmou) {
-        executarReset();
-      }
+      if (confirmou) executarReset();
     } else {
       Alert.alert(
         'Restaurar Grade Padrão',
@@ -103,25 +101,19 @@ export function MenuGrade() {
         a.click();
         URL.revokeObjectURL(url);
       } else if (Platform.OS === 'android') {
-        // @ts-ignore
         const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
         if (permissions.granted) {
-          // @ts-ignore
           const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
             permissions.directoryUri,
             'minha_grade_atual.csv',
             'text/csv'
           );
-          // @ts-ignore
           await FileSystem.writeAsStringAsync(fileUri, csvComBOM);
           Alert.alert('Sucesso', 'A grade atual foi exportada com sucesso!');
         }
       } else {
-        // @ts-ignore
         const fileUri = FileSystem.cacheDirectory + 'minha_grade_atual.csv';
-        // @ts-ignore
         await FileSystem.writeAsStringAsync(fileUri, csvComBOM);
-        
         const isAvailable = await Sharing.isAvailableAsync();
         if (isAvailable) {
           await Sharing.shareAsync(fileUri, {
@@ -129,21 +121,16 @@ export function MenuGrade() {
             dialogTitle: 'Exportar Grade Atual',
             UTI: 'public.comma-separated-values-text'
           });
-        } else {
-          Alert.alert('Aviso', 'O sistema não suporta manipular este arquivo.');
         }
       }
     } catch (error) {
-      console.error('Erro ao exportar grade:', error);
       Alert.alert('Erro', 'Não foi possível exportar a grade atual.');
     }
   };
 
   const handleDownloadModelo = async () => {
     try {
-      // BOM convertido em Hex para evitar problemas de escape de caractere literal no arquivo ou parser (\uFEFF)
       const CsvComBOM = String.fromCharCode(0xFEFF) + MODELO_CSV;
-      
       if (Platform.OS === 'web') {
         const blob = new Blob([CsvComBOM], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -153,25 +140,19 @@ export function MenuGrade() {
         a.click();
         URL.revokeObjectURL(url);
       } else if (Platform.OS === 'android') {
-        // @ts-ignore
         const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
         if (permissions.granted) {
-          // @ts-ignore
           const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
             permissions.directoryUri,
             'modelo_grade.csv',
             'text/csv'
           );
-          // @ts-ignore
           await FileSystem.writeAsStringAsync(fileUri, CsvComBOM);
           Alert.alert('Sucesso', 'O modelo foi salvo no seu dispositivo!');
         }
       } else {
-        // @ts-ignore
         const fileUri = FileSystem.cacheDirectory + 'modelo_grade.csv';
-        // @ts-ignore
         await FileSystem.writeAsStringAsync(fileUri, CsvComBOM);
-        
         const isAvailable = await Sharing.isAvailableAsync();
         if (isAvailable) {
           await Sharing.shareAsync(fileUri, {
@@ -179,12 +160,9 @@ export function MenuGrade() {
             dialogTitle: 'Salvar Modelo na pasta Arquivos',
             UTI: 'public.comma-separated-values-text'
           });
-        } else {
-          Alert.alert('Aviso', 'O sistema não suporta manipular este arquivo.');
         }
       }
     } catch (error) {
-      console.error('Erro ao baixar modelo:', error);
       Alert.alert('Erro', 'Não foi possível baixar o modelo.');
     }
   };
@@ -198,35 +176,23 @@ export function MenuGrade() {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        
         if (asset.name && !asset.name.toLowerCase().endsWith('.csv')) {
           throw new Error('Por favor, selecione um arquivo válido no formato .csv');
         }
 
         let content = '';
-
         if (Platform.OS === 'web') {
-          if (asset.file) {
-            content = await asset.file.text();
-          } else {
-            const response = await fetch(asset.uri);
-            content = await response.text();
-          }
+          content = asset.file ? await asset.file.text() : await (await fetch(asset.uri)).text();
         } else {
-          // @ts-ignore
           content = await FileSystem.readAsStringAsync(asset.uri);
         }
 
         const gradeParseada = parseCSV(content);
-        
         const executarImportacao = () => {
           try {
             importarGrade(gradeParseada);
-            if (Platform.OS === 'web') {
-              window.alert('A nova grade foi importada com sucesso!');
-            } else {
-              Alert.alert('Sucesso', 'A nova grade foi importada com sucesso!');
-            }
+            if (Platform.OS === 'web') window.alert('A nova grade foi importada com sucesso!');
+            else Alert.alert('Sucesso', 'A nova grade foi importada com sucesso!');
           } catch (e: any) {
             const msg = 'Grade com propriedades inválidas. ' + (e.message || '');
             if (Platform.OS === 'web') window.alert(msg);
@@ -235,28 +201,18 @@ export function MenuGrade() {
         };
 
         if (Platform.OS === 'web') {
-          const confirmou = window.confirm('Tem certeza que deseja substituir sua grade atual? Essa ação limpará seu progresso e mudará a base curricular.');
-          if (confirmou) {
+          if (window.confirm('Tem certeza que deseja substituir sua grade atual? Essa ação limpará seu progresso e mudará a base curricular.')) {
             executarImportacao();
           }
         } else {
-          Alert.alert(
-            'Importar Grade',
-            'Tem certeza que deseja substituir sua grade atual? Essa ação limpará seu progresso e mudará a base curricular.',
-            [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Importar', style: 'destructive', onPress: executarImportacao }
-            ]
-          );
+          Alert.alert('Importar Grade', 'Tem certeza que deseja substituir sua grade atual?', [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Importar', style: 'destructive', onPress: executarImportacao }
+          ]);
         }
       }
     } catch (err: any) {
-      console.error('Erro ao importar grade:', err);
-      if (Platform.OS === 'web') {
-        window.alert('Falha ao processar o arquivo: ' + (err.message || String(err)));
-      } else {
-        Alert.alert('Erro no arquivo', 'Falha ao processar o arquivo: ' + (err.message || String(err)));
-      }
+      Alert.alert('Erro no arquivo', 'Falha ao processar o arquivo.');
     }
   };
 
@@ -264,25 +220,27 @@ export function MenuGrade() {
     <View style={styles.container}>
       <Text style={styles.title}>Opções da Grade Curricular</Text>
       <View style={styles.actions}>
+        
         <TouchableOpacity style={styles.buttonAction} onPress={handleImportGrade}>
-          <Ionicons name="cloud-upload-outline" size={20} color={colors.disponivel} />
+          <UploadCloud size={20} color={colors.disponivel} />
           <Text style={styles.buttonText}>Importar Grade</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.buttonAction} onPress={handleExportGradeAtual}>
-          <Ionicons name="share-outline" size={20} color={colors.text} />
+          <Share size={20} color={colors.text} />
           <Text style={[styles.buttonText, { color: colors.text }]}>Exportar Atual</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.buttonAction} onPress={handleDownloadModelo}>
-          <Ionicons name="download-outline" size={20} color={colors.textMuted} />
+          <Download size={20} color={colors.textMuted} />
           <Text style={[styles.buttonText, { color: colors.textMuted }]}>Baixar Exemplo</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.buttonAction} onPress={handleResetGrade}>
-          <Ionicons name="refresh-outline" size={20} color={colors.bloqueada} />
+          <RefreshCw size={20} color={colors.bloqueada} />
           <Text style={[styles.buttonText, { color: colors.bloqueada }]}>Restaurar Padrão</Text>
         </TouchableOpacity>
+
       </View>
     </View>
   );

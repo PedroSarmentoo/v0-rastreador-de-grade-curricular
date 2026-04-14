@@ -13,7 +13,9 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* O Confetti só dispara quando você atinge 100% do curso! */}
       <Confetti isActive={progressoPercentual === 100} />
+      
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -22,6 +24,7 @@ export function HomeScreen() {
         <EstatisticasHeader />
         <Legenda />
         
+        {/* Renderiza cada semestre dinamicamente */}
         {semestres.map((semestre) => (
           <SemestreSection key={semestre} semestre={semestre} />
         ))}

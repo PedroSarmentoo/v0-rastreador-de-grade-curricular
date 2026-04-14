@@ -1,18 +1,21 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// 1. Importamos os ícones quadrados do Lucide que combinam com as caixas de seleção
+import { CheckSquare, PlaySquare, Square, Lock } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 
+// 2. Atualizamos a interface para receber um Componente React em vez de um texto
 interface LegendaItemProps {
-  icon: keyof typeof Ionicons.glyphMap;
+  IconComponent: React.ElementType;
   color: string;
   label: string;
 }
 
-function LegendaItem({ icon, color, label }: LegendaItemProps) {
+// 3. Renderizamos o IconComponent dinamicamente
+function LegendaItem({ IconComponent, color, label }: LegendaItemProps) {
   return (
     <View style={styles.item}>
-      <Ionicons name={icon} size={16} color={color} />
+      <IconComponent size={16} color={color} />
       <Text style={styles.label}>{label}</Text>
     </View>
   );
@@ -22,22 +25,22 @@ export function Legenda() {
   return (
     <View style={styles.container}>
       <LegendaItem 
-        icon="checkmark-circle" 
+        IconComponent={CheckSquare} 
         color={colors.concluida} 
-        label="Concluida" 
+        label="Concluída" 
       />
       <LegendaItem 
-        icon="play-circle" 
+        IconComponent={PlaySquare} 
         color={colors.cursando} 
         label="Cursando" 
       />
       <LegendaItem 
-        icon="ellipse-outline" 
+        IconComponent={Square} 
         color={colors.disponivel} 
-        label="Disponivel" 
+        label="Disponível" 
       />
       <LegendaItem 
-        icon="lock-closed" 
+        IconComponent={Lock} 
         color={colors.bloqueada} 
         label="Não tem os pré-requisitos necessários" 
       />

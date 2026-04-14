@@ -1,13 +1,13 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View, TextInput } from 'react-native'; // <-- Adicionado TextInput
+import { ScrollView, StyleSheet, Text, View, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons'; // <-- Adicionado para o ícone
+// 1. Trocamos Ionicons por User do Lucide
+import { User } from 'lucide-react-native'; 
 import { colors } from '../theme/colors';
 import { MenuGrade } from '../components/MenuGrade';
-import { useDisciplinas } from '../contexts/DisciplinasContext'; // <-- Adicionado o Contexto
+import { useDisciplinas } from '../contexts/DisciplinasContext';
 
 export function SettingsScreen() {
-  // Puxamos a variável e a função de alterar do seu Contexto
   const { nomeCurso, setNomeCurso } = useDisciplinas();
 
   return (
@@ -22,10 +22,11 @@ export function SettingsScreen() {
           <Text style={styles.headerSubtitle}>Gerencie os dados da sua aplicação</Text>
         </View>
 
-        {/* --- NOVA SEÇÃO: PERFIL ACADÊMICO --- */}
+        {/* --- SEÇÃO: PERFIL ACADÊMICO (ATUALIZADA) --- */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="person-outline" size={20} color={colors.disponivel} />
+            {/* 2. Renderizando o ícone vetorial */}
+            <User size={20} color={colors.disponivel} />
             <Text style={styles.sectionTitle}>Perfil Acadêmico</Text>
           </View>
 
@@ -34,7 +35,7 @@ export function SettingsScreen() {
             <TextInput
               style={styles.input}
               value={nomeCurso}
-              onChangeText={setNomeCurso} // Atualiza em tempo real
+              onChangeText={setNomeCurso}
               placeholder="Ex: Engenharia de Sistemas"
               placeholderTextColor={colors.textMuted}
             />
@@ -43,7 +44,6 @@ export function SettingsScreen() {
             </Text>
           </View>
         </View>
-        {/* ----------------------------------- */}
 
         <MenuGrade />
         
@@ -82,8 +82,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textMuted,
   },
-  
-  // --- ESTILOS ADICIONADOS PARA O CARD DO CURSO ---
   section: {
     marginBottom: 24,
   },
@@ -128,8 +126,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontStyle: 'italic',
   },
-  // ------------------------------------------------
-
   aboutContainer: {
     marginTop: 32,
     alignItems: 'center',

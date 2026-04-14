@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { GraduationCap, Book, CheckCircle, PlayCircle, Calendar, Unlock, Lock } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 
@@ -10,7 +10,7 @@ export function EstatisticasHeader() {
     disciplinasConcluidas, 
     disciplinasCursando,
     progressoPercentual,
-    nomeCurso, // Variável do nome do curso extraída do contexto
+    nomeCurso,
     anoEstimadoFormatura,
     disciplinasDisponiveis,
     disciplinasBloqueadas
@@ -19,7 +19,8 @@ export function EstatisticasHeader() {
   return (
     <View style={styles.container}>
       <View style={styles.titleSection}>
-        <Ionicons name="school-outline" size={28} color={colors.disponivel} />
+        {/* Ícone de Capelo (Formatura) no título */}
+        <GraduationCap size={28} color={colors.disponivel} />
         <Text style={styles.title}>Grade Curricular</Text>
       </View>
       
@@ -40,37 +41,37 @@ export function EstatisticasHeader() {
 
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Ionicons name="book-outline" size={20} color={colors.disponivel} />
+          <Book size={20} color={colors.disponivel} />
           <Text style={styles.statValue}>{totalDisciplinas}</Text>
           <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Total</Text>
         </View>
         
         <View style={styles.statCard}>
-          <Ionicons name="checkmark-circle-outline" size={20} color={colors.concluida} />
+          <CheckCircle size={20} color={colors.concluida} />
           <Text style={styles.statValue}>{disciplinasConcluidas}</Text>
           <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Concluídas</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Ionicons name="play-circle-outline" size={20} color={colors.cursando} />
+          <PlayCircle size={20} color={colors.cursando} />
           <Text style={styles.statValue}>{disciplinasCursando}</Text>
           <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Cursando</Text>
         </View>
         
         <View style={styles.statCard}>
-          <Ionicons name="calendar-outline" size={20} color={colors.text} />
+          <Calendar size={20} color={colors.text} />
           <Text style={styles.statValue}>{anoEstimadoFormatura}</Text>
           <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Formatura</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Ionicons name="lock-open-outline" size={20} color={colors.disponivel} />
+          <Unlock size={20} color={colors.disponivel} />
           <Text style={styles.statValue}>{disciplinasDisponiveis}</Text>
           <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Disponíveis</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
+          <Lock size={20} color={colors.textMuted} />
           <Text style={styles.statValue}>{disciplinasBloqueadas}</Text>
           <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Bloqueadas</Text>
         </View>
@@ -136,10 +137,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceLight,
     borderRadius: 12,
     paddingVertical: 14,
-    paddingHorizontal: 4, // Padding lateral reduzido para caber mais texto
+    paddingHorizontal: 4, 
     alignItems: 'center',
     gap: 6,
-    overflow: 'hidden', // Evita que elementos saiam do card
+    overflow: 'hidden', 
   },
   statValue: {
     fontSize: 20,
@@ -147,11 +148,11 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   statLabel: {
-    fontSize: 10, // Fonte base ligeiramente menor
+    fontSize: 10, 
     color: colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 0, // Removido o espaçamento extra entre letras
+    letterSpacing: 0, 
     textAlign: 'center',
-    width: '100%', // Usa 100% da largura para o auto-ajuste funcionar bem
+    width: '100%', 
   },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// 1. Importamos os ícones do Lucide (incluindo o GitBranch para os pré-requisitos)
+import { CheckSquare, PlaySquare, Square, Lock, GitBranch } from 'lucide-react-native';
 import { Disciplina } from '../types';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
@@ -38,16 +39,17 @@ export function DisciplinaCard({ disciplina }: Props) {
     }
   };
 
-  const getIconName = (): keyof typeof Ionicons.glyphMap => {
+  // 2. Agora retornamos o componente do Lucide diretamente, em vez de um texto
+  const getIconComponent = () => {
     switch (status) {
       case 'concluida':
-        return 'checkmark-circle';
+        return CheckSquare;
       case 'cursando':
-        return 'play-circle';
+        return PlaySquare;
       case 'disponivel':
-        return 'ellipse-outline';
+        return Square;
       default:
-        return 'lock-closed';
+        return Lock;
     }
   };
 
@@ -77,6 +79,9 @@ export function DisciplinaCard({ disciplina }: Props) {
 
   const preReqNomes = getPreRequisitosNomes();
   const isDisabled = status === 'bloqueada';
+  
+  // Extraímos o componente escolhido para usá-lo no JSX
+  const StatusIcon = getIconComponent();
 
   return (
     <TouchableOpacity
@@ -86,7 +91,8 @@ export function DisciplinaCard({ disciplina }: Props) {
       style={[styles.card, getCardStyle()]}
     >
       <View style={styles.header}>
-        <Ionicons name={getIconName()} size={22} color={getIconColor()} />
+        {/* 3. Renderizamos o ícone do Lucide */}
+        <StatusIcon size={22} color={getIconColor()} />
         <Text 
           style={[
             styles.nome,
@@ -101,7 +107,8 @@ export function DisciplinaCard({ disciplina }: Props) {
       
       {preReqNomes && (
         <View style={styles.preRequisitos}>
-          <Ionicons name="git-branch-outline" size={12} color={colors.textMuted} />
+          {/* 4. Ícone de ramificação atualizado */}
+          <GitBranch size={12} color={colors.textMuted} />
           <Text style={styles.preRequisitosText} numberOfLines={1}>
             {preReqNomes}
           </Text>
@@ -110,7 +117,7 @@ export function DisciplinaCard({ disciplina }: Props) {
 
       <View style={styles.statusBadge}>
         <Text style={[styles.statusText, { color: getIconColor() }]}>
-          {status === 'concluida' ? 'Concluida' : status === 'cursando' ? 'Cursando' : status === 'disponivel' ? 'Disponivel' : 'Bloqueada'}
+          {status === 'concluida' ? 'Concluída' : status === 'cursando' ? 'Cursando' : status === 'disponivel' ? 'Disponível' : 'Bloqueada'}
         </Text>
       </View>
     </TouchableOpacity>
