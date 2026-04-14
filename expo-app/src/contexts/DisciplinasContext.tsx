@@ -1,15 +1,21 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Disciplina, DisciplinaNode, StatusDisciplina } from '../types';
+import { Disciplina, DisciplinaNode, StatusDisciplina, AtividadesComplementares } from '../types';
 import { disciplinasIniciais } from '../data/disciplinas';
 
 const STORAGE_KEY = '@grade_curricular_dados_v1';
+const ACC_STORAGE_KEY = '@grade_curricular_acc_v2';
 
 interface DisciplinasContextData {
   disciplinas: Disciplina[];
   arvoresBase: DisciplinaNode[]; // Novo: As raízes das ramificações (disciplinas sem pré-requisitos e seus ramos)
   toggleDisciplina: (id: string) => void;
   toggleSemestre: (semestre: number) => void;
+  
+  // ACC / AIEX
+  atividades: AtividadesComplementares;
+  setAtividades: React.Dispatch<React.SetStateAction<AtividadesComplementares>>;
+
   totalDisciplinas: number;
   disciplinasConcluidas: number;
   disciplinasCursando: number;
@@ -26,6 +32,11 @@ const DisciplinasContext = createContext<DisciplinasContextData | undefined>(und
 
 export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>(disciplinasIniciais);
+  const [atividades, setAtividades] = useState<AtividadesComplementares>({
+    temAiex: false,
+    listaAcc: [],
+    listaAiex: []
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   const atualizarTodasDisciplinas = useCallback((disciplinasAtuais: Disciplina[]): Disciplina[] => {
@@ -77,6 +88,11 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           const dadosSalvos = JSON.parse(jsonValue);
           setDisciplinas(atualizarTodasDisciplinas(dadosSalvos));
         }
+        
+        const accValue = await AsyncStorage.getItem(ACC_STORAGE_KEY);
+        if (accValue !== null) {
+          setAtividades(JSON.parse(accValue));
+        }
       } catch (e) {
         console.error('Erro ao carregar dados:', e);
       } finally {
@@ -93,13 +109,16 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         try {
           const jsonValue = JSON.stringify(disciplinas);
           await AsyncStorage.setItem(STORAGE_KEY, jsonValue);
+          
+          const accValue = JSON.stringify(atividades);
+          await AsyncStorage.setItem(ACC_STORAGE_KEY, accValue);
         } catch (e) {
           console.error('Erro ao salvar dados:', e);
         }
       }
     }
     salvarDados();
-  }, [disciplinas, isLoading]);
+  }, [disciplinas, atividades, isLoading]);
 
   const toggleDisciplina = useCallback((id: string) => {
     setDisciplinas((prev) => {
@@ -137,7 +156,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           // Se todas estiverem concluídas, volta para disponível
           // (mas a função atualizarTodasDisciplinas pode transformá-las em 'bloqueada' dependendo dos pre-requisitos)
           // Se não estiverem todas concluídas, força para 'concluida' ignorando as travas
-          return { ...d, status: todasConcluidas ? 'disponivel' : 'concluida' };
+          return { ...d, status: (todasConcluidas ? 'disponivel' : 'concluida') as StatusDisciplina };
         }
         return d;
       });
@@ -317,6 +336,8 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         arvoresBase, // Passamos as raízes das árvores para serem consumidas globalmente
         toggleDisciplina,
         toggleSemestre,
+        atividades,
+        setAtividades,
         totalDisciplinas,
         disciplinasConcluidas,
         disciplinasCursando,

@@ -11,3 +11,17 @@ export interface Disciplina {
 export interface DisciplinaNode extends Disciplina {
   dependentes: DisciplinaNode[]; // Disciplinas que ramificam a partir desta (que a exigem como pré-requisito)
 }
+
+export interface AtividadeItem {
+  id: string;
+  titulo: string;
+  horas: number;
+  nomeDocumento?: string;
+  uriDocumento?: string;
+}
+
+export interface AtividadesComplementares {
+  temAiex: boolean;
+  listaAcc: AtividadeItem[];
+  listaAiex: AtividadeItem[];
+}
