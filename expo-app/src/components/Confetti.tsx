@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Platform } from 'react-native';
-import ConfettiCannon from 'react-native-confetti-cannon';
 
 interface Props {
   isActive: boolean;
@@ -12,24 +11,55 @@ export function Confetti({ isActive }: Props) {
   const { width } = Dimensions.get('window');
 
   useEffect(() => {
-    // Só estoura se NÃO estava ativo antes e e AGORA está ativo (bater 100% no meio da sessão)
+    let timer: ReturnType<typeof setTimeout>;
+
     if (isActive && !previousIsActive.current) {
       setShow(true);
-      const timer = setTimeout(() => setShow(false), 6000);
       
-      // Atualiza a referência pra não estourar de novo até que ele regrida o valor
+      if (Platform.OS === 'web') {
+        const confetti = require('canvas-confetti');
+        const end = Date.now() + 6 * 1000;
+        
+        const frame = () => {
+          confetti({
+            particleCount: 5,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
+            zIndex: 9999
+          });
+          confetti({
+            particleCount: 5,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
+            zIndex: 9999
+          });
+
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          }
+        };
+        frame();
+      }
+
+      timer = setTimeout(() => setShow(false), 6000);
       previousIsActive.current = true;
-      return () => clearTimeout(timer);
     } 
     
     if (!isActive) {
       previousIsActive.current = false;
       setShow(false);
     }
+
+    return () => clearTimeout(timer);
   }, [isActive]);
 
   if (!show || Platform.OS === 'web') return null;
 
+  const ConfettiCannon = require('react-native-confetti-cannon').default;
 
   return (
     <View style={styles.container} pointerEvents="none">
