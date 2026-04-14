@@ -15,7 +15,10 @@ prog3;Programação Avançada;3;prog1,prog2`;
 
 const parseCSV = (csvText: string): any[] => {
   // Remove o BOM (Byte Order Mark) invisível caso o Excel tenha incluído ao salvar
-  const cleanText = csvText.replace(/^\\uFEFF/, '').trim();
+  let cleanText = csvText.trim();
+  if (cleanText.charCodeAt(0) === 0xFEFF) {
+    cleanText = cleanText.substring(1);
+  }
   const lines = cleanText.split('\\n');
   if (lines.length < 2) throw new Error('O CSV está vazio ou sem dados.');
   
@@ -79,7 +82,8 @@ export function MenuGrade() {
 
   const handleDownloadModelo = async () => {
     try {
-      const CsvComBOM = '\\uFEFF' + MODELO_CSV;
+      // BOM convertido em Hex para evitar problemas de escape de caractere literal no arquivo ou parser (\uFEFF)
+      const CsvComBOM = String.fromCharCode(0xFEFF) + MODELO_CSV;
       
       if (Platform.OS === 'web') {
         const blob = new Blob([CsvComBOM], { type: 'text/csv;charset=utf-8;' });
