@@ -14,7 +14,9 @@ prog2;Programação Orientada a Objetos;2;prog1
 prog3;Programação Avançada;3;prog1,prog2`;
 
 const parseCSV = (csvText: string): any[] => {
-  const lines = csvText.trim().split('\\n');
+  // Remove o BOM (Byte Order Mark) invisível caso o Excel tenha incluído ao salvar
+  const cleanText = csvText.replace(/^\\uFEFF/, '').trim();
+  const lines = cleanText.split('\\n');
   if (lines.length < 2) throw new Error('O CSV está vazio ou sem dados.');
   
   const headers = lines[0].split(';').map(h => h.trim());
@@ -77,8 +79,10 @@ export function MenuGrade() {
 
   const handleDownloadModelo = async () => {
     try {
+      const CsvComBOM = '\\uFEFF' + MODELO_CSV;
+      
       if (Platform.OS === 'web') {
-        const blob = new Blob([MODELO_CSV], { type: 'text/csv' });
+        const blob = new Blob([CsvComBOM], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -96,14 +100,14 @@ export function MenuGrade() {
             'text/csv'
           );
           // @ts-ignore
-          await FileSystem.writeAsStringAsync(fileUri, MODELO_CSV);
+          await FileSystem.writeAsStringAsync(fileUri, CsvComBOM);
           Alert.alert('Sucesso', 'O modelo foi salvo no seu dispositivo!');
         }
       } else {
         // @ts-ignore
         const fileUri = FileSystem.cacheDirectory + 'modelo_grade.csv';
         // @ts-ignore
-        await FileSystem.writeAsStringAsync(fileUri, MODELO_CSV);
+        await FileSystem.writeAsStringAsync(fileUri, CsvComBOM);
         
         const isAvailable = await Sharing.isAvailableAsync();
         if (isAvailable) {
