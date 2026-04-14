@@ -74,8 +74,13 @@ export function MenuGrade() {
         const asset = result.assets[0];
         let content = '';
 
-        if (Platform.OS === 'web' && asset.file) {
-          content = await asset.file.text();
+        if (Platform.OS === 'web') {
+          if (asset.file) {
+            content = await asset.file.text();
+          } else {
+            const response = await fetch(asset.uri);
+            content = await response.text();
+          }
         } else {
           // @ts-ignore
           content = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
@@ -83,29 +88,44 @@ export function MenuGrade() {
 
         const gradeParseada = JSON.parse(content);
         
-        Alert.alert(
-          'Importar Grade',
-          'Tem certeza que deseja substituir sua grade atual? Essa ação limpará seu progresso e mudará a base curricular.',
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            { 
-              text: 'Importar', 
-              style: 'destructive',
-              onPress: () => {
-                try {
-                  importarGrade(gradeParseada);
-                  Alert.alert('Sucesso', 'A nova grade foi importada com sucesso!');
-                } catch (e: any) {
-                  Alert.alert('Erro', 'Grade com propriedades inválidas. ' + (e.message || ''));
-                }
-              }
+        const executarImportacao = () => {
+          try {
+            importarGrade(gradeParseada);
+            if (Platform.OS === 'web') {
+              window.alert('A nova grade foi importada com sucesso!');
+            } else {
+              Alert.alert('Sucesso', 'A nova grade foi importada com sucesso!');
             }
-          ]
-        );
+          } catch (e: any) {
+            const msg = 'Grade com propriedades inválidas. ' + (e.message || '');
+            if (Platform.OS === 'web') window.alert(msg);
+            else Alert.alert('Erro', msg);
+          }
+        };
+
+        if (Platform.OS === 'web') {
+          const confirmou = window.confirm('Tem certeza que deseja substituir sua grade atual? Essa ação limpará seu progresso e mudará a base curricular.');
+          if (confirmou) {
+            executarImportacao();
+          }
+        } else {
+          Alert.alert(
+            'Importar Grade',
+            'Tem certeza que deseja substituir sua grade atual? Essa ação limpará seu progresso e mudará a base curricular.',
+            [
+              { text: 'Cancelar', style: 'cancel' },
+              { text: 'Importar', style: 'destructive', onPress: executarImportacao }
+            ]
+          );
+        }
       }
     } catch (err: any) {
       console.error('Erro ao importar grade:', err);
-      Alert.alert('Erro no arquivo', 'Falha ao processar o arquivo: ' + (err.message || String(err)));
+      if (Platform.OS === 'web') {
+        window.alert('Falha ao processar o arquivo: ' + (err.message || String(err)));
+      } else {
+        Alert.alert('Erro no arquivo', 'Falha ao processar o arquivo: ' + (err.message || String(err)));
+      }
     }
   };
 
