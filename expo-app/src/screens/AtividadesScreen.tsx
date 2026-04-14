@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
   },
   ruleInfoText: {
     fontSize: 12,
-    color: colors.textBody,
+    color: colors.text,
     marginTop: 4,
     marginBottom: 12,
     fontStyle: 'italic',

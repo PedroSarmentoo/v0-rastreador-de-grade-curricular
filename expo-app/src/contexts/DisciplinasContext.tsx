@@ -26,6 +26,7 @@ interface DisciplinasContextData {
   getDisciplinasPorSemestre: (semestre: number) => Disciplina[];
   semestres: number[];
   isLoading: boolean;
+  importarGrade: (novaGrade: Disciplina[]) => void;
 }
 
 const DisciplinasContext = createContext<DisciplinasContextData | undefined>(undefined);
@@ -153,9 +154,6 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
       
       const novaLista = prev.map(d => {
         if (d.semestre === semestre) {
-          // Se todas estiverem concluídas, volta para disponível
-          // (mas a função atualizarTodasDisciplinas pode transformá-las em 'bloqueada' dependendo dos pre-requisitos)
-          // Se não estiverem todas concluídas, força para 'concluida' ignorando as travas
           return { ...d, status: (todasConcluidas ? 'disponivel' : 'concluida') as StatusDisciplina };
         }
         return d;
@@ -163,6 +161,32 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
 
       return atualizarTodasDisciplinas(novaLista);
     });
+  }, [atualizarTodasDisciplinas]);
+
+  const importarGrade = useCallback((novaGrade: Partial<Disciplina>[]) => {
+    try {
+      if (!Array.isArray(novaGrade)) throw new Error('Grade deve ser um array');
+      
+      const gradeMapeada: Disciplina[] = novaGrade.map((d, index) => {
+        if (!d.id || !d.nome || d.semestre === undefined) {
+          throw new Error(`Disciplina inválida no índice ${index}`);
+        }
+        const preReqs = Array.isArray(d.preRequisitos) ? d.preRequisitos : [];
+        return {
+          id: d.id,
+          nome: d.nome,
+          semestre: d.semestre,
+          preRequisitos: preReqs,
+          // Se não tem status definido na importação, calculamos por padrão
+          status: d.status || (preReqs.length === 0 ? 'disponivel' : 'bloqueada')
+        };
+      });
+
+      setDisciplinas(atualizarTodasDisciplinas(gradeMapeada));
+    } catch (error) {
+      console.error('Erro ao importar grade:', error);
+      throw error;
+    }
   }, [atualizarTodasDisciplinas]);
 
   // ESTATÍSTICAS
@@ -348,6 +372,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         getDisciplinasPorSemestre,
         semestres,
         isLoading,
+        importarGrade
       }}
     >
       {children}
