@@ -7,16 +7,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { DisciplinasProvider } from './src/contexts/DisciplinasContext';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { AtividadesScreen } from './src/screens/AtividadesScreen';
+import { SettingsScreen } from './src/screens/SettingsScreen';
 import { colors } from './src/theme/colors';
 
 function MainNavigator() {
-  const [activeTab, setActiveTab] = useState<'grade' | 'atividades'>('grade');
+  const [activeTab, setActiveTab] = useState<'grade' | 'atividades' | 'settings'>('grade');
 
   return (
     <View style={styles.container}>
       {/* Content Area */}
       <View style={styles.content}>
-        {activeTab === 'grade' ? <HomeScreen /> : <AtividadesScreen />}
+        {activeTab === 'grade' && <HomeScreen />}
+        {activeTab === 'atividades' && <AtividadesScreen />}
+        {activeTab === 'settings' && <SettingsScreen />}
       </View>
 
       {/* Custom Bottom Tab Bar */}
@@ -48,6 +51,21 @@ function MainNavigator() {
           />
           <Text style={[styles.tabLabel, activeTab === 'atividades' && styles.tabLabelActive]}>
             Atividades
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.tabItem} 
+          onPress={() => setActiveTab('settings')}
+          activeOpacity={0.7}
+        >
+          <Ionicons 
+            name="settings" 
+            size={24} 
+            color={activeTab === 'settings' ? colors.disponivel : colors.textMuted} 
+          />
+          <Text style={[styles.tabLabel, activeTab === 'settings' && styles.tabLabelActive]}>
+            Config.
           </Text>
         </TouchableOpacity>
       </View>
