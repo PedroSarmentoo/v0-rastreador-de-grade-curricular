@@ -17,6 +17,7 @@ export function AtividadesScreen() {
   const [regraAccSelecionada, setRegraAccSelecionada] = useState<AccRule | null>(null);
 
   // Inputs para nova ACC
+  const [novaAccTitulo, setNovaAccTitulo] = useState('');
   const [novaAccQuantidade, setNovaAccQuantidade] = useState('');
   const [novaAccDoc, setNovaAccDoc] = useState<{ name: string; uri: string } | null>(null);
 
@@ -45,8 +46,8 @@ export function AtividadesScreen() {
   };
 
   const handleAddAcc = () => {
-    if (!regraAccSelecionada || !novaAccQuantidade) {
-      Alert.alert('Erro', 'Por favor, selecione o tipo de ACC e preencha a quantidade/horas.');
+    if (!regraAccSelecionada || !novaAccQuantidade || !novaAccTitulo) {
+      Alert.alert('Erro', 'Por favor, selecione o tipo de ACC, preencha o nome do certificado e a quantidade/horas.');
       return;
     }
     const qtdDigitada = parseFloat(novaAccQuantidade) || 0;
@@ -74,7 +75,7 @@ export function AtividadesScreen() {
 
     const nova: AtividadeItem = {
       id: Date.now().toString(),
-      titulo: regraAccSelecionada.modalidade,
+      titulo: novaAccTitulo, // Usa o nome digitado correspondente ao certificado
       horas: parseFloat(horasCalculadas.toFixed(2)),
       nomeDocumento: novaAccDoc?.name,
       uriDocumento: novaAccDoc?.uri,
@@ -84,8 +85,16 @@ export function AtividadesScreen() {
 
     setAtividades(prev => ({ ...prev, listaAcc: [...(prev.listaAcc || []), nova] }));
     setRegraAccSelecionada(null);
+    setNovaAccTitulo('');
     setNovaAccQuantidade('');
     setNovaAccDoc(null);
+  };
+
+  const getHorasRestantesRegra = (ruleId: string, chMaxima: number) => {
+    const horasJaLancadas = (atividades.listaAcc || [])
+      .filter(a => a.modalidadeId === ruleId)
+      .reduce((soma, item) => soma + item.horas, 0);
+    return Math.max(0, chMaxima - horasJaLancadas);
   };
 
   const handleAddAiex = () => {
@@ -205,6 +214,14 @@ export function AtividadesScreen() {
               </Text>
               <Ionicons name="chevron-down" size={20} color={colors.textMuted} />
             </TouchableOpacity>
+
+            <TextInput 
+              style={styles.input} 
+              placeholder="Nome do Certificado (Ex: Minicurso de Python)" 
+              placeholderTextColor={colors.textMuted}
+              value={novaAccTitulo}
+              onChangeText={setNovaAccTitulo}
+            />
             
             <View style={styles.rowForm}>
               <TextInput 
@@ -229,7 +246,7 @@ export function AtividadesScreen() {
             
             {regraAccSelecionada && (
               <Text style={styles.ruleInfoText}>
-                Regra: {regraAccSelecionada.paridadeDescricao} {' | '} Máx: {regraAccSelecionada.ch_maxima_descricao}
+                Regra: {regraAccSelecionada.paridadeDescricao} {' | '} Máx: {regraAccSelecionada.ch_maxima_descricao} {' | '} Restam: <Text style={{fontWeight: '700', color: getHorasRestantesRegra(regraAccSelecionada.id, regraAccSelecionada.ch_maxima) > 0 ? colors.disponivel : colors.textMuted}}>{getHorasRestantesRegra(regraAccSelecionada.id, regraAccSelecionada.ch_maxima)}h</Text>
               </Text>
             )}
 
@@ -333,26 +350,41 @@ export function AtividadesScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, gap: 12 }}>
-              {accRules.map(rule => (
-                <TouchableOpacity
-                  key={rule.id}
-                  style={[
-                    styles.ruleOptionBtn,
-                    regraAccSelecionada?.id === rule.id && { borderColor: colors.disponivel, backgroundColor: colors.disponivelBg }
-                  ]}
-                  onPress={() => {
-                    setRegraAccSelecionada(rule);
-                    setModalVisible(false);
-                  }}
-                >
-                  <Text style={[styles.ruleOptionTitle, regraAccSelecionada?.id === rule.id && { color: colors.disponivel }]}>
-                    {rule.modalidade}
-                  </Text>
-                  <Text style={styles.ruleOptionDesc}>
-                    {rule.paridadeDescricao} • Máx: {rule.ch_maxima_descricao}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {accRules.map(rule => {
+                const restam = getHorasRestantesRegra(rule.id, rule.ch_maxima);
+                return (
+                  <TouchableOpacity
+                    key={rule.id}
+                    style={[
+                      styles.ruleOptionBtn,
+                      regraAccSelecionada?.id === rule.id && { borderColor: colors.disponivel, backgroundColor: colors.disponivelBg },
+                      restam <= 0 && { opacity: 0.6 }
+                    ]}
+                    onPress={() => {
+                      if (restam > 0) {
+                        setRegraAccSelecionada(rule);
+                        setModalVisible(false);
+                      } else {
+                        Alert.alert('Limite Atingido', `Você já alcançou as ${rule.ch_maxima}h permitidas para esta modalidade.`);
+                      }
+                    }}
+                  >
+                    <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                      <Text style={[styles.ruleOptionTitle, regraAccSelecionada?.id === rule.id && { color: colors.disponivel }, { flex: 1, paddingRight: 8 }]}>
+                        {rule.modalidade}
+                      </Text>
+                      <View style={{alignItems: 'flex-end'}}>
+                        <Text style={[styles.ruleOptionDesc, {fontWeight: '600', color: restam > 0 ? colors.disponivel : colors.textMuted}]}>
+                          Restam: {restam}h
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.ruleOptionDesc}>
+                      {rule.paridadeDescricao} • Máx: {rule.ch_maxima_descricao}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </View>
