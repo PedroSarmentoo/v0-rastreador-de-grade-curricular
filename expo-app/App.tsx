@@ -85,14 +85,21 @@ function MainNavigator() {
 }
 
 export default function App() {
-  // <-- Lógica adicionada para carregar a fonte dos ícones
-  const [fontsLoaded] = useFonts(Ionicons.font);
+  // 1. Agora também capturamos o "fontError" caso algo dê errado
+  const [fontsLoaded, fontError] = useFonts({
+    ...Ionicons.font,
+  });
 
-  // Se a fonte ainda não carregou, não renderiza nada (evita os quadrados em branco)
-  if (!fontsLoaded) {
-    return null;
+  // 2. Se a fonte não carregou E não deu erro, mostramos a cor de fundo do seu app com um texto
+  if (!fontsLoaded && !fontError) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: colors.textMuted, fontSize: 16 }}>Carregando aplicativo...</Text>
+      </View>
+    );
   }
 
+  // Se deu erro (fontError) ou se carregou (fontsLoaded), ele passa direto e abre o app!
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
