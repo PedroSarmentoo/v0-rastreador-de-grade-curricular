@@ -7,21 +7,21 @@ import * as Sharing from 'expo-sharing';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { colors } from '../theme/colors';
 
-const MODELO_CSV = `id,nome,semestre,preRequisitos
-mat1,Matemática Básica,1,
-prog1,Programação I,1,
-prog2,Programação Orientada a Objetos,2,prog1
-prog3,Programação Avançada,3,prog1;prog2`;
+const MODELO_CSV = `id;nome;semestre;preRequisitos
+mat1;Matemática Básica;1;
+prog1;Programação I;1;
+prog2;Programação Orientada a Objetos;2;prog1
+prog3;Programação Avançada;3;prog1,prog2`;
 
 const parseCSV = (csvText: string): any[] => {
   const lines = csvText.trim().split('\\n');
   if (lines.length < 2) throw new Error('O CSV está vazio ou sem dados.');
   
-  const headers = lines[0].split(',').map(h => h.trim());
+  const headers = lines[0].split(';').map(h => h.trim());
   const result = [];
   
   for (let i = 1; i < lines.length; i++) {
-    const currentLine = lines[i].split(',');
+    const currentLine = lines[i].split(';');
     if (currentLine.length < headers.length) continue; // Pula linhas vazias
     
     const obj: any = {};
@@ -30,7 +30,7 @@ const parseCSV = (csvText: string): any[] => {
       if (header === 'semestre') {
         obj[header] = parseInt(val, 10);
       } else if (header === 'preRequisitos') {
-        obj[header] = val ? val.split(';').map(p => p.trim()) : [];
+        obj[header] = val ? val.split(',').map(p => p.trim()) : [];
       } else {
         obj[header] = val;
       }
