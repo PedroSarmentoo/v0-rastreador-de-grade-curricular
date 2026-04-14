@@ -9,7 +9,10 @@ export function EstatisticasHeader() {
     totalDisciplinas, 
     disciplinasConcluidas, 
     progressoPercentual, 
-    semestresRestantes 
+    semestresRestantes,
+    // Adicionamos as duas novas variáveis aqui
+    disciplinasDisponiveis,
+    disciplinasBloqueadas
   } = useDisciplinas();
 
   return (
@@ -30,7 +33,7 @@ export function EstatisticasHeader() {
             ]} 
           />
         </View>
-        <Text style={styles.progressText}>{progressoPercentual}% concluido</Text>
+        <Text style={styles.progressText}>{progressoPercentual}% concluído</Text>
       </View>
 
       <View style={styles.statsGrid}>
@@ -43,13 +46,27 @@ export function EstatisticasHeader() {
         <View style={styles.statCard}>
           <Ionicons name="checkmark-circle-outline" size={20} color={colors.concluida} />
           <Text style={styles.statValue}>{disciplinasConcluidas}</Text>
-          <Text style={styles.statLabel}>Concluidas</Text>
+          <Text style={styles.statLabel}>Concluídas</Text>
         </View>
         
         <View style={styles.statCard}>
           <Ionicons name="time-outline" size={20} color={colors.textMuted} />
           <Text style={styles.statValue}>{semestresRestantes}</Text>
           <Text style={styles.statLabel}>Sem. Restantes</Text>
+        </View>
+
+        {/* Novos cards adicionados abaixo */}
+        <View style={styles.statCard}>
+          <Ionicons name="lock-open-outline" size={20} color={colors.disponivel} />
+          <Text style={styles.statValue}>{disciplinasDisponiveis}</Text>
+          <Text style={styles.statLabel}>Disponíveis</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          {/* Caso não tenha uma cor específica para bloqueada, usamos o textMuted */}
+          <Ionicons name="lock-closed-outline" size={20} color={colors.textMuted} />
+          <Text style={styles.statValue}>{disciplinasBloqueadas}</Text>
+          <Text style={styles.statLabel}>Bloqueadas</Text>
         </View>
       </View>
     </View>
@@ -104,10 +121,12 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap', // Essencial: permite que os cards pulem para a linha de baixo
     gap: 12,
   },
   statCard: {
-    flex: 1,
+    flexGrow: 1, // Faz o card crescer para preencher o espaço restante na linha
+    flexBasis: '28%', // Define um tamanho base para caberem 3 na primeira linha e 2 maiores na segunda
     backgroundColor: colors.surfaceLight,
     borderRadius: 12,
     padding: 14,

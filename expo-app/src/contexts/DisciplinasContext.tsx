@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useMemo, React
 import { Disciplina, StatusDisciplina } from '../types';
 import { disciplinasIniciais } from '../data/disciplinas';
 
+// 1. Adicionamos as novas variáveis na Interface
 interface DisciplinasContextData {
   disciplinas: Disciplina[];
   toggleDisciplina: (id: string) => void;
@@ -9,6 +10,8 @@ interface DisciplinasContextData {
   disciplinasConcluidas: number;
   progressoPercentual: number;
   semestresRestantes: number;
+  disciplinasDisponiveis: number; // <- NOVO
+  disciplinasBloqueadas: number;  // <- NOVO
   getDisciplinasPorSemestre: (semestre: number) => Disciplina[];
   semestres: number[];
 }
@@ -67,6 +70,17 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     [disciplinas]
   );
 
+  // 2. Criamos os cálculos para as novas variáveis
+  const disciplinasDisponiveis = useMemo(
+    () => disciplinas.filter((d) => d.status === 'disponivel').length,
+    [disciplinas]
+  );
+
+  const disciplinasBloqueadas = useMemo(
+    () => disciplinas.filter((d) => d.status === 'bloqueada').length,
+    [disciplinas]
+  );
+
   const progressoPercentual = useMemo(
     () => Math.round((disciplinasConcluidas / totalDisciplinas) * 100),
     [disciplinasConcluidas, totalDisciplinas]
@@ -94,6 +108,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
 
   return (
     <DisciplinasContext.Provider
+      // 3. Exportamos as variáveis no value do Provider
       value={{
         disciplinas,
         toggleDisciplina,
@@ -101,6 +116,8 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         disciplinasConcluidas,
         progressoPercentual,
         semestresRestantes,
+        disciplinasDisponiveis,
+        disciplinasBloqueadas,
         getDisciplinasPorSemestre,
         semestres,
       }}
