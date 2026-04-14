@@ -177,8 +177,8 @@ export function MenuGrade() {
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.buttonAction} onPress={handleResetGrade}>
-          <Ionicons name="refresh-outline" size={20} color={colors.bloqueado} />
-          <Text style={[styles.buttonText, { color: colors.bloqueado }]}>Restaurar Padrão</Text>
+          <Ionicons name="refresh-outline" size={20} color={colors.bloqueada} />
+          <Text style={[styles.buttonText, { color: colors.bloqueada }]}>Restaurar Padrão</Text>
         </TouchableOpacity>
       </View>
     </View>
