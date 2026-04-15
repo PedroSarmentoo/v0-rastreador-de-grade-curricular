@@ -1,14 +1,30 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, View, TextInput, TouchableOpacity, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// 1. Trocamos Ionicons por User do Lucide
-import { User } from 'lucide-react-native'; 
+// Adicionados os ícones Calculator e X
+import { User, Calculator, X } from 'lucide-react-native'; 
 import { colors } from '../theme/colors';
 import { MenuGrade } from '../components/MenuGrade';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 
 export function SettingsScreen() {
   const { nomeCurso, setNomeCurso } = useDisciplinas();
+
+  // Estados para controlar a calculadora
+  const [modalVisible, setModalVisible] = useState(false);
+  const [tpsl, setTpsl] = useState('');
+
+  // Lógica matemática para TPPF
+  const calcularTPPF = () => {
+    if (!tpsl) return null;
+    const notaTPSL = parseFloat(tpsl.replace(',', '.')); // Aceita vírgula ou ponto
+    if (isNaN(notaTPSL)) return null;
+    
+    const notaNecessaria = (180 - notaTPSL) / 2;
+    return notaNecessaria;
+  };
+
+  const notaNecessaria = calcularTPPF();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -22,10 +38,9 @@ export function SettingsScreen() {
           <Text style={styles.headerSubtitle}>Gerencie os dados da sua aplicação</Text>
         </View>
 
-        {/* --- SEÇÃO: PERFIL ACADÊMICO (ATUALIZADA) --- */}
+        {/* --- SEÇÃO: PERFIL ACADÊMICO --- */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            {/* 2. Renderizando o ícone vetorial */}
             <User size={20} color={colors.disponivel} />
             <Text style={styles.sectionTitle}>Perfil Acadêmico</Text>
           </View>
@@ -45,6 +60,22 @@ export function SettingsScreen() {
           </View>
         </View>
 
+        {/* --- NOVA SEÇÃO: FERRAMENTAS --- */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Calculator size={20} color={colors.cursando} />
+            <Text style={styles.sectionTitle}>Ferramentas</Text>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => setModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.actionButtonText}>Calcular Nota da Prova Final</Text>
+          </TouchableOpacity>
+        </View>
+
         <MenuGrade />
         
         <View style={styles.aboutContainer}>
@@ -52,11 +83,63 @@ export function SettingsScreen() {
           <Text style={styles.aboutText}>Rastreador de Grade Curricular v1.0.0</Text>
         </View>
       </ScrollView>
+
+      {/* --- MODAL DA CALCULADORA --- */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Calculadora Unimontes</Text>
+              <TouchableOpacity onPress={() => {
+                setModalVisible(false);
+                setTpsl(''); // Limpa o input ao fechar
+              }}>
+                <X size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.label}>Sua nota parcial (TPSL):</Text>
+            <TextInput
+              style={styles.input}
+              value={tpsl}
+              onChangeText={setTpsl}
+              placeholder="Ex: 45"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+            />
+
+            {notaNecessaria !== null && (
+              <View style={styles.resultContainer}>
+                {notaNecessaria <= 0 ? (
+                  <Text style={[styles.resultText, { color: colors.concluida, fontWeight: 'bold' }]}>
+                    Você já atingiu a média! 🎉
+                  </Text>
+                ) : notaNecessaria > 100 ? (
+                  <Text style={[styles.resultText, { color: colors.bloqueada }]}>
+                    Infelizmente, você precisa de {notaNecessaria.toFixed(1)} pontos, o que ultrapassa o limite possível. 😔
+                  </Text>
+                ) : (
+                  <Text style={styles.resultText}>
+                    Você precisa tirar <Text style={{ color: colors.cursando, fontWeight: 'bold' }}>{notaNecessaria.toFixed(1)}</Text> na TPPF para ser aprovado.
+                  </Text>
+                )}
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  // Estilos originais mantidos
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -142,5 +225,60 @@ const styles = StyleSheet.create({
   aboutText: {
     fontSize: 14,
     color: colors.textMuted,
+  },
+
+  // --- NOVOS ESTILOS PARA A CALCULADORA E MODAL ---
+  actionButton: {
+    backgroundColor: colors.surface,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    minHeight: 320,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  resultContainer: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: colors.surfaceLight,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  resultText: {
+    color: colors.text,
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });
