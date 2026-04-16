@@ -103,7 +103,7 @@ export function SettingsScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.label}>Sua nota parcial (TPSL):</Text>
+            <Text style={styles.label}>Sua nota parcial:</Text>
             <TextInput
               style={styles.input}
               value={tpsl}
@@ -119,13 +119,9 @@ export function SettingsScreen() {
                   <Text style={[styles.resultText, { color: colors.concluida, fontWeight: 'bold' }]}>
                     Você já atingiu a média! 🎉
                   </Text>
-                ) : notaNecessaria > 100 ? (
-                  <Text style={[styles.resultText, { color: colors.bloqueada }]}>
-                    Infelizmente, você precisa de {notaNecessaria.toFixed(1)} pontos, o que ultrapassa o limite possível. 😔
-                  </Text>
                 ) : (
                   <Text style={styles.resultText}>
-                    Você precisa tirar <Text style={{ color: colors.cursando, fontWeight: 'bold' }}>{notaNecessaria.toFixed(1)}</Text> na TPPF para ser aprovado.
+                    Você precisa tirar <Text style={{ color: colors.cursando, fontWeight: 'bold' }}>{notaNecessaria.toFixed(1)}</Text> na prova final para ser aprovado.
                   </Text>
                 )}
               </View>
