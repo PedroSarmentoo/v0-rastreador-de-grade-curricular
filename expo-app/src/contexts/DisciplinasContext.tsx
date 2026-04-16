@@ -6,6 +6,7 @@ import { Disciplina, DisciplinaNode, StatusDisciplina, AtividadesComplementares 
 import { disciplinasIniciais } from '../data/disciplinas';
 import { disciplinasSI } from '../data/disciplinasSI'; 
 import { disciplinasCivil } from '../data/disciplinasCivil'; 
+import { disciplinasEletrica } from '../data/disciplinasEletrica';
 
 const ACC_STORAGE_KEY = '@grade_curricular_acc_v2';
 const COURSE_NAME_KEY = '@grade_curricular_nome_curso';
@@ -245,9 +246,10 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const resetarGrade = useCallback(() => {
     // 4. ATUALIZADO: Lógica de reset com Engenharia Civil
     const gradeBase = 
-      nomeCurso === 'Sistemas de Informação' ? disciplinasSI : 
-      nomeCurso === 'Engenharia Civil' ? disciplinasCivil : 
-      disciplinasIniciais;
+          nomeCurso === 'Sistemas de Informação' ? disciplinasSI : 
+          nomeCurso === 'Engenharia Civil' ? disciplinasCivil : 
+          nomeCurso === 'Engenharia Elétrica' ? disciplinasEletrica : // <-- Adicione esta linha
+          disciplinasIniciais;
 
     setDisciplinas(atualizarTodasDisciplinas(gradeBase));
   }, [atualizarTodasDisciplinas, nomeCurso]);

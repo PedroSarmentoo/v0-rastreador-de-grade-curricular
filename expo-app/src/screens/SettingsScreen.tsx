@@ -1,51 +1,66 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, TextInput, TouchableOpacity, Modal, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Calculator, X, ChevronDown, BookOpen, Check, RotateCcw } from 'lucide-react-native';
+import { User, Calculator, X, ChevronDown, BookOpen, Check, RotateCcw } from 'lucide-react-native'; 
 import { colors } from '../theme/colors';
 import { MenuGrade } from '../components/MenuGrade';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 
-export function SettingsScreen() {
+// 1. Interface que avisa que podemos receber a função do App.tsx
+interface SettingsScreenProps {
+  onNavigateToGrade?: () => void;
+}
+
+// 2. Recebemos a função aqui (e sem nenhum useNavigation!)
+export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
   const { nomeCurso, setNomeCurso, resetarGrade } = useDisciplinas();
 
-  // Estados para controlar a calculadora
   const [modalVisible, setModalVisible] = useState(false);
   const [tpsl, setTpsl] = useState('');
-
-  // Estados para Modal de Seleção de Cursos
   const [modalCursosVisible, setModalCursosVisible] = useState(false);
   const [cursoTemporario, setCursoTemporario] = useState(nomeCurso);
   
-  // Lista de cursos disponíveis
   const cursosDisponiveis = [
     'Engenharia de Sistemas',
     'Sistemas de Informação',
-    'Engenharia Civil'
+    'Engenharia Civil',
+    'Engenharia Elétrica'
   ];
+
+  const salvarNovoCurso = () => {
+    if (cursoTemporario !== nomeCurso) {
+      setNomeCurso(cursoTemporario);
+      
+      // Muda a aba para 'grade' usando a função do App.tsx
+      if (onNavigateToGrade) onNavigateToGrade();
+
+      if (Platform.OS === 'web') {
+        window.alert(`Sucesso! Sua grade foi alterada para ${cursoTemporario}.`);
+      }
+    }
+    setModalCursosVisible(false);
+  };
+
+  const confirmarReiniciar = () => {
+    resetarGrade();
+    
+    // Muda a aba para 'grade' usando a função do App.tsx
+    if (onNavigateToGrade) onNavigateToGrade();
+
+    if (Platform.OS === 'web') {
+      window.alert('Grade reiniciada com sucesso!');
+    }
+  };
 
   const handleTpslChange = (text: string) => {
     const formattedText = text.replace(',', '.');
-    if (formattedText === '') {
-      setTpsl('');
-      return;
-    }
+    if (formattedText === '') { setTpsl(''); return; }
     const numericValue = parseFloat(formattedText);
     if (!isNaN(numericValue) && numericValue > 60) {
       setTpsl('60');
     } else {
       setTpsl(formattedText);
     }
-  };
-
-  const salvarNovoCurso = () => {
-    if (cursoTemporario !== nomeCurso) {
-      setNomeCurso(cursoTemporario);
-      if (Platform.OS === 'web') {
-        window.alert(`Sucesso! Sua grade foi alterada para ${cursoTemporario}.`);
-      }
-    }
-    setModalCursosVisible(false);
   };
 
   const notaTPSL = parseFloat(tpsl);
@@ -65,7 +80,6 @@ export function SettingsScreen() {
           <Text style={styles.headerSubtitle}>Gerencie os dados da sua aplicação</Text>
         </View>
 
-        {/* --- SEÇÃO: PERFIL ACADÊMICO --- */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <User size={20} color={colors.disponivel} />
@@ -88,7 +102,6 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        {/* --- SEÇÃO: FERRAMENTAS --- */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Calculator size={20} color={colors.cursando} />
@@ -103,23 +116,19 @@ export function SettingsScreen() {
             <Text style={styles.actionButtonText}>Calcular Nota da Prova Final</Text>
           </TouchableOpacity>
 
-{/* NOVO BOTÃO DE RESET - VISUAL MELHORADO */}
           <TouchableOpacity 
             style={styles.resetButton}
             onPress={() => {
               if (Platform.OS === 'web') {
-                const confirma = window.confirm(`Tem certeza que deseja apagar seu progresso e restaurar a grade original de ${nomeCurso}?`);
-                if (confirma) {
-                  resetarGrade();
-                  window.alert('Grade restaurada com sucesso!');
-                }
+                const confirma = window.confirm(`Tem certeza que deseja apagar seu progresso e reiniciar a grade de ${nomeCurso}?`);
+                if (confirma) confirmarReiniciar();
               } else {
                 Alert.alert(
-                  "Restaurar Grade",
-                  `Tem certeza que deseja apagar seu progresso e restaurar a grade original de ${nomeCurso}?`,
+                  "Reiniciar Grade",
+                  `Tem certeza que deseja apagar seu progresso e reiniciar a grade de ${nomeCurso}?`,
                   [
                     { text: "Cancelar", style: "cancel" },
-                    { text: "Restaurar", style: "destructive", onPress: resetarGrade }
+                    { text: "Reiniciar", style: "destructive", onPress: confirmarReiniciar }
                   ]
                 );
               }
@@ -133,17 +142,14 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* --- SEÇÃO: IMPORTAR/EXPORTAR (Restaurada) --- */}
         <MenuGrade />
         
-        {/* --- SEÇÃO: SOBRE (Restaurada) --- */}
         <View style={styles.aboutContainer}>
           <Text style={styles.aboutTitle}>Sobre o App</Text>
-          <Text style={styles.aboutText}>UniGrade v1.2.2</Text>
+          <Text style={styles.aboutText}>UniGrade v1.2.4</Text>
         </View>
       </ScrollView>
 
-      {/* --- MODAL DA CALCULADORA --- */}
       <Modal animationType="slide" transparent={true} visible={modalVisible}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -180,7 +186,6 @@ export function SettingsScreen() {
         </View>
       </Modal>
 
-      {/* --- MODAL SELEÇÃO DE CURSOS --- */}
       <Modal animationType="slide" transparent={true} visible={modalCursosVisible}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { minHeight: 400 }]}>
@@ -249,24 +254,12 @@ const styles = StyleSheet.create({
   aboutText: { fontSize: 14, color: colors.textMuted },
   actionButton: { backgroundColor: colors.surface, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
   actionButtonText: { color: colors.text, fontSize: 16, fontWeight: '500' },
+  resetButton: { backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.3)', alignItems: 'center', marginTop: 12 },
+  resetButtonText: { color: colors.bloqueada, fontSize: 15, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, borderColor: colors.border },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: colors.text },
   resultContainer: { marginTop: 24, padding: 16, backgroundColor: colors.surfaceLight, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   resultText: { color: colors.text, fontSize: 16, textAlign: 'center' },
-  resetButton: {
-    backgroundColor: 'rgba(239, 68, 68, 0.08)', // Vermelho bem clarinho e transparente
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)', // Borda vermelha sutil
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  resetButtonText: {
-    color: colors.bloqueada, // O vermelho que você já usa no app
-    fontSize: 15,
-    fontWeight: '600',
-  },
 });
