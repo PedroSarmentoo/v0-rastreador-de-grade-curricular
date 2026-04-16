@@ -55,7 +55,7 @@ export const disciplinasIniciais: Disciplina[] = [
   { id: 'com_dados2', nome: 'Comunicação de Dados II', semestre: 7, preRequisitos: ['com_dados1'], status: 'bloqueada' },
   { id: 'tees1', nome: 'Tópicos Especiais em Eng. de Sistemas I', semestre: 7, preRequisitos: [], status: 'disponivel' },
   { id: 'confiabilidade', nome: 'Confiabilidade', semestre: 7, preRequisitos: ['estat_prob'], status: 'bloqueada' },
-  { id: 'met_comp_apl_eng', nome: 'Mét. Computacionais Aplicados à Engenharia', semestre: 7, preRequisitos: ['analise_num'], status: 'bloqueada' },
+  { id: 'met_comp_apl_eng', nome: 'Mét. Computacionais Aplicados à Engenharia', semestre: 7, preRequisitos: [], status: 'disponivel' },
   { id: 'sist_micro', nome: 'Sistemas Microprocessados', semestre: 7, preRequisitos: ['eletronica'], status: 'bloqueada' },
   { id: 'acion_elet', nome: 'Acionamentos Elétricos', semestre: 7, preRequisitos: ['circ_elet2'], status: 'bloqueada' },
 

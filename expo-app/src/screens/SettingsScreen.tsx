@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, TextInput, TouchableOpacity, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// Adicionados os ícones Calculator e X
 import { User, Calculator, X } from 'lucide-react-native'; 
 import { colors } from '../theme/colors';
 import { MenuGrade } from '../components/MenuGrade';
@@ -14,17 +13,34 @@ export function SettingsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [tpsl, setTpsl] = useState('');
 
-  // Lógica matemática para TPPF
-  const calcularTPPF = () => {
-    if (!tpsl) return null;
-    const notaTPSL = parseFloat(tpsl.replace(',', '.')); // Aceita vírgula ou ponto
-    if (isNaN(notaTPSL)) return null;
+  // Lógica de bloqueio: Não permite digitar mais que 60
+  const handleTpslChange = (text: string) => {
+    // Troca vírgula por ponto para facilitar o cálculo
+    const formattedText = text.replace(',', '.');
     
-    const notaNecessaria = (180 - notaTPSL) / 2;
-    return notaNecessaria;
+    // Se o usuário apagar tudo, atualiza normalmente
+    if (formattedText === '') {
+      setTpsl('');
+      return;
+    }
+
+    const numericValue = parseFloat(formattedText);
+
+    // Se o valor for um número maior que 60, trava no 60
+    if (!isNaN(numericValue) && numericValue > 60) {
+      setTpsl('60');
+    } else {
+      setTpsl(formattedText);
+    }
   };
 
-  const notaNecessaria = calcularTPPF();
+  // Variáveis para a lógica visual da calculadora
+  const notaTPSL = parseFloat(tpsl);
+  const isValida = !isNaN(notaTPSL);
+  const atingiuMedia = isValida && notaTPSL >= 60;
+  
+  // Só calcula a nota necessária se a nota for menor que 60
+  const notaNecessaria = isValida && notaTPSL < 60 ? (180 - notaTPSL) / 2 : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -80,7 +96,7 @@ export function SettingsScreen() {
         
         <View style={styles.aboutContainer}>
           <Text style={styles.aboutTitle}>Sobre o App</Text>
-          <Text style={styles.aboutText}>Rastreador de Grade Curricular v1.1.0</Text>
+          <Text style={styles.aboutText}>Rastreador de Grade Curricular v1.1.1</Text>
         </View>
       </ScrollView>
 
@@ -107,25 +123,37 @@ export function SettingsScreen() {
             <TextInput
               style={styles.input}
               value={tpsl}
-              onChangeText={setTpsl}
+              onChangeText={handleTpslChange}
               placeholder="Ex: 45"
               placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
+              maxLength={5} // Evita textos gigantes
             />
 
-            {notaNecessaria !== null && (
+            {/* Cenário 1: Já atingiu 60 pontos */}
+            {atingiuMedia && (
               <View style={styles.resultContainer}>
-                {notaNecessaria <= 0 ? (
-                  <Text style={[styles.resultText, { color: colors.concluida, fontWeight: 'bold' }]}>
-                    Você já atingiu a média! 🎉
+                <Text style={[styles.resultText, { color: colors.concluida, fontWeight: 'bold' }]}>
+                  Parabéns! Com 60 pontos você já está aprovado por média e não precisa de Prova Final. 🎉
+                </Text>
+              </View>
+            )}
+
+            {/* Cenário 2: Precisa de nota e calculou com sucesso */}
+            {notaNecessaria !== null && !atingiuMedia && (
+              <View style={styles.resultContainer}>
+                {notaNecessaria > 100 ? (
+                  <Text style={[styles.resultText, { color: colors.bloqueada }]}>
+                    Infelizmente, você precisa de {notaNecessaria.toFixed(1)} pontos, o que ultrapassa o limite possível (100). 😔
                   </Text>
                 ) : (
                   <Text style={styles.resultText}>
-                    Você precisa tirar <Text style={{ color: colors.cursando, fontWeight: 'bold' }}>{notaNecessaria.toFixed(1)}</Text> na prova final para ser aprovado.
+                    Você precisa tirar <Text style={{ color: colors.cursando, fontWeight: 'bold' }}>{notaNecessaria.toFixed(1)}</Text> na TPPF para ser aprovado.
                   </Text>
                 )}
               </View>
             )}
+
           </View>
         </View>
       </Modal>
@@ -135,7 +163,6 @@ export function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Estilos originais mantidos
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -223,7 +250,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // --- NOVOS ESTILOS PARA A CALCULADORA E MODAL ---
+  // --- ESTILOS PARA A CALCULADORA E MODAL ---
   actionButton: {
     backgroundColor: colors.surface,
     padding: 16,
