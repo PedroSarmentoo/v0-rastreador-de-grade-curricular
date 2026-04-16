@@ -44,7 +44,7 @@ export function EstatisticasHeader() {
         <View style={styles.statCard}>
           <Book size={20} color={colors.disponivel} />
           <Text style={styles.statValue}>{totalDisciplinas}</Text>
-          <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Total</Text>
+          <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Total de disciplinas</Text>
         </View>
         
         <View style={styles.statCard}>
