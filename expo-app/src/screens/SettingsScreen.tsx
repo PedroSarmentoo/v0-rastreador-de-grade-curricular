@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, TextInput, TouchableOpacity, Modal } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TextInput, TouchableOpacity, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Calculator, X } from 'lucide-react-native'; 
+import { User, Calculator, X, ChevronDown, BookOpen, Check } from 'lucide-react-native'; 
 import { colors } from '../theme/colors';
 import { MenuGrade } from '../components/MenuGrade';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
@@ -13,12 +13,20 @@ export function SettingsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [tpsl, setTpsl] = useState('');
 
-  // Lógica de bloqueio: Não permite digitar mais que 60
+  // Estados para Modal de Seleção de Cursos
+  const [modalCursosVisible, setModalCursosVisible] = useState(false);
+  // Estado para armazenar a escolha ANTES de o usuário apertar "Confirmar"
+  const [cursoTemporario, setCursoTemporario] = useState(nomeCurso);
+  
+  // Lista de cursos disponíveis no aplicativo
+  const cursosDisponiveis = [
+    'Engenharia de Sistemas',
+    'Sistemas de Informação'
+  ];
+
   const handleTpslChange = (text: string) => {
-    // Troca vírgula por ponto para facilitar o cálculo
     const formattedText = text.replace(',', '.');
     
-    // Se o usuário apagar tudo, atualiza normalmente
     if (formattedText === '') {
       setTpsl('');
       return;
@@ -26,7 +34,6 @@ export function SettingsScreen() {
 
     const numericValue = parseFloat(formattedText);
 
-    // Se o valor for um número maior que 60, trava no 60
     if (!isNaN(numericValue) && numericValue > 60) {
       setTpsl('60');
     } else {
@@ -34,12 +41,23 @@ export function SettingsScreen() {
     }
   };
 
-  // Variáveis para a lógica visual da calculadora
+  // Função disparada ao clicar no botão "Confirmar Alteração"
+  const salvarNovoCurso = () => {
+    if (cursoTemporario !== nomeCurso) {
+      setNomeCurso(cursoTemporario);
+      
+      // Feedback simples dependendo de onde o usuário está rodando
+      if (Platform.OS === 'web') {
+        window.alert(`Sucesso! Sua grade foi alterada para ${cursoTemporario}. Vá para a tela inicial para ver as disciplinas.`);
+      }
+    }
+    setModalCursosVisible(false);
+  };
+
   const notaTPSL = parseFloat(tpsl);
   const isValida = !isNaN(notaTPSL);
   const atingiuMedia = isValida && notaTPSL >= 60;
   
-  // Só calcula a nota necessária se a nota for menor que 60
   const notaNecessaria = isValida && notaTPSL < 60 ? (180 - notaTPSL) / 2 : null;
 
   return (
@@ -62,21 +80,25 @@ export function SettingsScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.label}>Nome do Curso</Text>
-            <TextInput
-              style={styles.input}
-              value={nomeCurso}
-              onChangeText={setNomeCurso}
-              placeholder="Ex: Engenharia de Sistemas"
-              placeholderTextColor={colors.textMuted}
-            />
-            <Text style={styles.helpText}>
-              Este nome aparecerá no topo da sua grade curricular.
-            </Text>
+            <Text style={styles.label}>Curso Selecionado</Text>
+            
+            <TouchableOpacity 
+              style={styles.selectInput}
+              onPress={() => {
+                setCursoTemporario(nomeCurso); // Garante que abre marcando o curso atual
+                setModalCursosVisible(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.selectText, !nomeCurso && { color: colors.textMuted }]}>
+                {nomeCurso || "Selecione o seu curso..."}
+              </Text>
+              <ChevronDown size={20} color={colors.textMuted} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* --- NOVA SEÇÃO: FERRAMENTAS --- */}
+        {/* --- SEÇÃO: FERRAMENTAS --- */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Calculator size={20} color={colors.cursando} />
@@ -96,7 +118,7 @@ export function SettingsScreen() {
         
         <View style={styles.aboutContainer}>
           <Text style={styles.aboutTitle}>Sobre o App</Text>
-          <Text style={styles.aboutText}>Rastreador de Grade Curricular v1.1.1</Text>
+          <Text style={styles.aboutText}>Rastreador de Grade Curricular v1.2.1</Text>
         </View>
       </ScrollView>
 
@@ -113,7 +135,7 @@ export function SettingsScreen() {
               <Text style={styles.modalTitle}>Calculadora</Text>
               <TouchableOpacity onPress={() => {
                 setModalVisible(false);
-                setTpsl(''); // Limpa o input ao fechar
+                setTpsl('');
               }}>
                 <X size={24} color={colors.text} />
               </TouchableOpacity>
@@ -127,10 +149,9 @@ export function SettingsScreen() {
               placeholder="Ex: 45"
               placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
-              maxLength={5} // Evita textos gigantes
+              maxLength={5}
             />
 
-            {/* Cenário 1: Já atingiu 60 pontos */}
             {atingiuMedia && (
               <View style={styles.resultContainer}>
                 <Text style={[styles.resultText, { color: colors.concluida, fontWeight: 'bold' }]}>
@@ -139,7 +160,6 @@ export function SettingsScreen() {
               </View>
             )}
 
-            {/* Cenário 2: Precisa de nota e calculou com sucesso */}
             {notaNecessaria !== null && !atingiuMedia && (
               <View style={styles.resultContainer}>
                 {notaNecessaria > 100 ? (
@@ -153,6 +173,72 @@ export function SettingsScreen() {
                 )}
               </View>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- MODAL SELEÇÃO DE CURSOS (REFORMULADO) --- */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalCursosVisible}
+        onRequestClose={() => setModalCursosVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { minHeight: 400 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecione seu Curso</Text>
+              <TouchableOpacity onPress={() => setModalCursosVisible(false)}>
+                <X size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+              {cursosDisponiveis.map((curso, index) => (
+                <TouchableOpacity 
+                  key={index}
+                  style={[
+                    styles.cursoOption, 
+                    cursoTemporario === curso && styles.cursoOptionSelected
+                  ]}
+                  onPress={() => setCursoTemporario(curso)}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <BookOpen size={20} color={cursoTemporario === curso ? colors.disponivel : colors.textMuted} />
+                    <Text style={[
+                      styles.cursoOptionText, 
+                      cursoTemporario === curso && { color: colors.disponivel, fontWeight: 'bold' }
+                    ]}>
+                      {curso}
+                    </Text>
+                  </View>
+                  {/* Ícone de check se estiver selecionado */}
+                  {cursoTemporario === curso && (
+                    <Check size={20} color={colors.disponivel} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* BOTÃO DE CONFIRMAR */}
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[
+                  styles.confirmButton, 
+                  cursoTemporario === nomeCurso && { backgroundColor: colors.surfaceLight, borderColor: colors.border }
+                ]}
+                onPress={salvarNovoCurso}
+                disabled={cursoTemporario === nomeCurso}
+              >
+                <Text style={[
+                  styles.confirmButtonText,
+                  cursoTemporario === nomeCurso && { color: colors.textMuted }
+                ]}>
+                  {cursoTemporario === nomeCurso ? 'Feito' : 'Confirmar Alteração'}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
           </View>
         </View>
@@ -226,6 +312,64 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  
+  // --- ESTILOS DO SELETOR DE CURSOS ---
+  selectInput: {
+    backgroundColor: colors.surfaceLight,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  cursoOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceLight,
+    marginBottom: 8,
+  },
+  cursoOptionSelected: {
+    borderColor: colors.disponivel,
+    backgroundColor: colors.disponivelBg,
+  },
+  cursoOptionText: {
+    color: colors.text,
+    fontSize: 16,
+  },
+  modalFooter: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  confirmButton: {
+    backgroundColor: colors.disponivel,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.disponivel,
+  },
+  confirmButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  // -------------------------------------
+
   helpText: {
     fontSize: 12,
     color: colors.textMuted,
@@ -249,8 +393,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textMuted,
   },
-
-  // --- ESTILOS PARA A CALCULADORA E MODAL ---
   actionButton: {
     backgroundColor: colors.surface,
     padding: 16,

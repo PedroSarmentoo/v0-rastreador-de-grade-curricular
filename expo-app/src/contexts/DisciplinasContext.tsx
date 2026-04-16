@@ -3,9 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Disciplina, DisciplinaNode, StatusDisciplina, AtividadesComplementares } from '../types';
 import { disciplinasIniciais } from '../data/disciplinas';
 
-const STORAGE_KEY = '@grade_curricular_dados_v1';
+import { disciplinasSI } from '../data/disciplinasSI'; 
+
 const ACC_STORAGE_KEY = '@grade_curricular_acc_v2';
-const COURSE_NAME_KEY = '@grade_curricular_nome_curso'; // <-- NOVO: Chave para o nome do curso
+const COURSE_NAME_KEY = '@grade_curricular_nome_curso';
+
+const getStorageKeyPorCurso = (curso: string) => {
+  if (curso === 'Engenharia de Sistemas') {
+    return '@grade_curricular_dados_v1'; 
+  }
+  return `@grade_curricular_dados_${curso.replace(/\s+/g, '_')}`;
+};
 
 interface DisciplinasContextData {
   disciplinas: Disciplina[];
@@ -13,11 +21,9 @@ interface DisciplinasContextData {
   toggleDisciplina: (id: string) => void;
   toggleSemestre: (semestre: number) => void;
   
-  // NOME DO CURSO (NOVO)
   nomeCurso: string;
   setNomeCurso: (nome: string) => void;
 
-  // ACC / AIEX
   atividades: AtividadesComplementares;
   setAtividades: React.Dispatch<React.SetStateAction<AtividadesComplementares>>;
 
@@ -38,8 +44,8 @@ interface DisciplinasContextData {
 const DisciplinasContext = createContext<DisciplinasContextData | undefined>(undefined);
 
 export function DisciplinasProvider({ children }: { children: ReactNode }) {
-  const [disciplinas, setDisciplinas] = useState<Disciplina[]>(disciplinasIniciais);
-  const [nomeCurso, setNomeCurso] = useState('Engenharia de Sistemas'); // <-- NOVO: Estado do nome do curso
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [nomeCurso, setNomeCursoState] = useState('Engenharia de Sistemas'); 
   const [atividades, setAtividades] = useState<AtividadesComplementares>({
     temAiex: false,
     listaAcc: [],
@@ -79,25 +85,31 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     return Array.from(mapa.values());
   }, []);
 
-  // CARREGAR DADOS
   useEffect(() => {
     async function carregarDados() {
       try {
-        const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
+        let cursoAtual = 'Engenharia de Sistemas';
+        const nomeSalvo = await AsyncStorage.getItem(COURSE_NAME_KEY);
+        
+        if (nomeSalvo !== null) {
+          cursoAtual = nomeSalvo;
+          setNomeCursoState(cursoAtual);
+        }
+
+        const storageKey = getStorageKeyPorCurso(cursoAtual);
+        const jsonValue = await AsyncStorage.getItem(storageKey);
+        
         if (jsonValue !== null) {
           const dadosSalvos = JSON.parse(jsonValue);
           setDisciplinas(atualizarTodasDisciplinas(dadosSalvos));
+        } else {
+          const gradeBase = cursoAtual === 'Sistemas de Informação' ? disciplinasSI : disciplinasIniciais;
+          setDisciplinas(atualizarTodasDisciplinas(gradeBase));
         }
         
         const accValue = await AsyncStorage.getItem(ACC_STORAGE_KEY);
         if (accValue !== null) {
           setAtividades(JSON.parse(accValue));
-        }
-
-        // <-- NOVO: Carregar o nome do curso
-        const nomeSalvo = await AsyncStorage.getItem(COURSE_NAME_KEY);
-        if (nomeSalvo !== null) {
-          setNomeCurso(nomeSalvo);
         }
 
       } catch (e) {
@@ -109,13 +121,13 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     carregarDados();
   }, [atualizarTodasDisciplinas]);
 
-  // SALVAR DADOS (Disciplinas e ACC)
   useEffect(() => {
     async function salvarDados() {
-      if (!isLoading) {
+      if (!isLoading && disciplinas.length > 0) {
         try {
+          const storageKey = getStorageKeyPorCurso(nomeCurso);
           const jsonValue = JSON.stringify(disciplinas);
-          await AsyncStorage.setItem(STORAGE_KEY, jsonValue);
+          await AsyncStorage.setItem(storageKey, jsonValue);
           
           const accValue = JSON.stringify(atividades);
           await AsyncStorage.setItem(ACC_STORAGE_KEY, accValue);
@@ -125,23 +137,29 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
       }
     }
     salvarDados();
-  }, [disciplinas, atividades, isLoading]);
+  }, [disciplinas, atividades, isLoading, nomeCurso]);
 
-  // <-- NOVO: SALVAR DADOS (Nome do Curso)
-  // Criamos um useEffect separado para o nome do curso para evitar que ele
-  // seja salvo desnecessariamente quando uma disciplina muda, e vice-versa.
-  useEffect(() => {
-    async function salvarNomeCurso() {
-      if (!isLoading) {
-        try {
-          await AsyncStorage.setItem(COURSE_NAME_KEY, nomeCurso);
-        } catch (e) {
-          console.error('Erro ao salvar nome do curso:', e);
-        }
+  const handleSetNomeCurso = useCallback(async (novoCurso: string) => {
+    try {
+      setIsLoading(true);
+      setNomeCursoState(novoCurso); 
+      await AsyncStorage.setItem(COURSE_NAME_KEY, novoCurso);
+
+      const storageKey = getStorageKeyPorCurso(novoCurso);
+      const jsonValue = await AsyncStorage.getItem(storageKey);
+
+      if (jsonValue !== null) {
+        setDisciplinas(atualizarTodasDisciplinas(JSON.parse(jsonValue)));
+      } else {
+        const gradeBase = novoCurso === 'Sistemas de Informação' ? disciplinasSI : disciplinasIniciais;
+        setDisciplinas(atualizarTodasDisciplinas(gradeBase));
       }
+    } catch (e) {
+      console.error('Erro ao trocar curso:', e);
+    } finally {
+      setIsLoading(false);
     }
-    salvarNomeCurso();
-  }, [nomeCurso, isLoading]);
+  }, [atualizarTodasDisciplinas]);
 
   const toggleDisciplina = useCallback((id: string) => {
     setDisciplinas((prev) => {
@@ -209,14 +227,12 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
   }, [atualizarTodasDisciplinas]);
 
   const resetarGrade = useCallback(() => {
-    setDisciplinas(atualizarTodasDisciplinas(disciplinasIniciais));
-    setNomeCurso('Engenharia de Sistemas'); // Reseta o nome para o padrão também
-  }, [atualizarTodasDisciplinas]);
+    const gradeBase = nomeCurso === 'Sistemas de Informação' ? disciplinasSI : disciplinasIniciais;
+    setDisciplinas(atualizarTodasDisciplinas(gradeBase));
+  }, [atualizarTodasDisciplinas, nomeCurso]);
 
-  // ESTATÍSTICAS
   const totalDisciplinas = disciplinas.length;
   
-  // ÁRVORES / RAMIFICAÇÕES DE DISCIPLINAS
   const arvoresBase = useMemo(() => {
     const mapa = new Map<string, DisciplinaNode>();
     
@@ -270,7 +286,6 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     [disciplinasConcluidas, totalDisciplinas]
   );
 
-  // CÁLCULO DE FORMATURA COM BASE NO "CAMINHO CRÍTICO" DAS ÁRVORES
   const anoEstimadoFormatura = useMemo(() => {
     const pendentes = disciplinas.filter((d) => d.status !== 'concluida');
     if (pendentes.length === 0) return "Formado!";
@@ -359,11 +374,8 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         arvoresBase,
         toggleDisciplina,
         toggleSemestre,
-        
-        // <-- NOVO: Variáveis do Nome do Curso disponíveis globalmente
         nomeCurso,
-        setNomeCurso,
-        
+        setNomeCurso: handleSetNomeCurso,
         atividades,
         setAtividades,
         totalDisciplinas,
