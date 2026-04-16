@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
-import { UploadCloud, Share, Download, RefreshCw } from 'lucide-react-native';
+import { UploadCloud, Share, Download, RefreshCw, Info } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -219,6 +219,32 @@ export function MenuGrade() {
         </TouchableOpacity>
 
       </View>
+      <View style={styles.tutorialContainer}>
+        <View style={styles.tutorialHeader}>
+          <Info size={16} color={colors.textMuted} />
+          <Text style={styles.tutorialTitle}>Como preencher a tabela Excel (.xlsx)</Text>
+        </View>
+        <View style={{ gap: 6 }}>
+          <Text style={styles.tutorialText}>
+            A primeira linha da planilha deve conter os cabeçalhos exatos: <Text style={styles.tutorialBold}>id, nome, semestre, preRequisitos</Text>.
+          </Text>
+          <Text style={styles.tutorialText}>
+            <Text style={styles.tutorialBold}>id</Text>: Identificador único, curto e sem espaços (ex: mat1).
+          </Text>
+          <Text style={styles.tutorialText}>
+            <Text style={styles.tutorialBold}>nome</Text>: Nome completo da disciplina (ex: Cálculo I).
+          </Text>
+          <Text style={styles.tutorialText}>
+            <Text style={styles.tutorialBold}>semestre</Text>: Número indicando o período (ex: 1, 2).
+          </Text>
+          <Text style={styles.tutorialText}>
+            <Text style={styles.tutorialBold}>preRequisitos</Text>: IDs separados apenas por vírgula (ex: mat1,calc2). Deixe em branco se não houver.
+          </Text>
+          <Text style={[styles.tutorialText, { marginTop: 6 }]}>
+            <Text style={{ fontStyle: 'italic', fontWeight: 'bold' }}>Dica:</Text> Clique em "Baixar Exemplo" para usar o modelo já formatado corretamente.
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -261,6 +287,34 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.disponivel,
+  },
+  tutorialContainer: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: colors.surfaceLight,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tutorialHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6,
+  },
+  tutorialTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  tutorialText: {
+    fontSize: 13,
+    color: colors.textMuted,
+    lineHeight: 20,
+  },
+  tutorialBold: {
+    fontWeight: '700',
+    color: colors.text,
   }
 
 });
