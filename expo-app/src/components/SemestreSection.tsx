@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// 1. Nova importação dos ícones do Lucide
+import { Undo2, CheckCheck } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { DisciplinaCard } from './DisciplinaCard';
@@ -10,7 +11,7 @@ interface Props {
 }
 
 export function SemestreSection({ semestre }: Props) {
-  // 1. Obtemos a largura atual da tela
+  // Obtemos a largura atual da tela
   const { width } = useWindowDimensions();
   const { getDisciplinasPorSemestre, toggleSemestre } = useDisciplinas();
   
@@ -19,7 +20,7 @@ export function SemestreSection({ semestre }: Props) {
   const total = disciplinas.length;
   const todasConcluidas = concluidas === total && total > 0;
 
-  // 2. Definimos se é um ecrã "largo" (Web/Tablet) ou "estreito" (Telemóvel)
+  // Definimos se é um ecrã "largo" (Web/Tablet) ou "estreito" (Telemóvel)
   const isLargeScreen = width > 600;
 
   return (
@@ -36,11 +37,13 @@ export function SemestreSection({ semestre }: Props) {
             onPress={() => toggleSemestre(semestre)}
             activeOpacity={0.7}
           >
-            <Ionicons 
-              name={todasConcluidas ? "arrow-undo-outline" : "checkmark-done-outline"} 
-              size={16} 
-              color={todasConcluidas ? colors.textMuted : colors.concluida} 
-            />
+            {/* 2. Lógica atualizada para os novos ícones */}
+            {todasConcluidas ? (
+              <Undo2 size={16} color={colors.textMuted} />
+            ) : (
+              <CheckCheck size={16} color={colors.concluida} />
+            )}
+            
             <Text style={[styles.textoBotao, todasConcluidas && { color: colors.textMuted }]}>
               {todasConcluidas ? "Desmarcar Tudo" : "Concluir Todas"}
             </Text>
@@ -48,7 +51,7 @@ export function SemestreSection({ semestre }: Props) {
         </View>
       </View>
       
-      {/* 3. O estilo da lista agora muda dinamicamente */}
+      {/* O estilo da lista agora muda dinamicamente */}
       <View style={[
         styles.list, 
         isLargeScreen ? styles.gridRow : styles.gridColumn
@@ -97,7 +100,7 @@ const styles = StyleSheet.create({
   botaoConcluirTudo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6, // Aumentei levemente o gap para ficar mais bonito com o Lucide
     backgroundColor: colors.concluidaBg,
     paddingHorizontal: 8,
     paddingVertical: 4,

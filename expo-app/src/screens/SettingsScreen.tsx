@@ -80,7 +80,7 @@ export function SettingsScreen() {
         
         <View style={styles.aboutContainer}>
           <Text style={styles.aboutTitle}>Sobre o App</Text>
-          <Text style={styles.aboutText}>Rastreador de Grade Curricular v1.0.0</Text>
+          <Text style={styles.aboutText}>Rastreador de Grade Curricular v1.1.0</Text>
         </View>
       </ScrollView>
 
