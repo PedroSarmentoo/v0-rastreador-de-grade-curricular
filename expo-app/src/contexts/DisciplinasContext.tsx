@@ -7,6 +7,7 @@ import { disciplinasIniciais } from '../data/disciplinas';
 import { disciplinasSI } from '../data/disciplinasSI'; 
 import { disciplinasCivil } from '../data/disciplinasCivil'; 
 import { disciplinasEletrica } from '../data/disciplinasEletrica';
+import { disciplinasMatematica } from '../data/disciplinasMatematica'; 
 
 const ACC_STORAGE_KEY = '@grade_curricular_acc_v2';
 const COURSE_NAME_KEY = '@grade_curricular_nome_curso';
@@ -111,6 +112,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           const gradeBase = 
             cursoAtual === 'Sistemas de Informação' ? disciplinasSI : 
             cursoAtual === 'Engenharia Civil' ? disciplinasCivil : 
+            cursoAtual === 'Matemática' ? disciplinasMatematica : 
             disciplinasIniciais;
 
           setDisciplinas(atualizarTodasDisciplinas(gradeBase));
@@ -166,6 +168,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         const gradeBase = 
           novoCurso === 'Sistemas de Informação' ? disciplinasSI : 
           novoCurso === 'Engenharia Civil' ? disciplinasCivil : 
+          novoCurso === 'Matemática' ? disciplinasMatematica : 
           disciplinasIniciais;
 
         setDisciplinas(atualizarTodasDisciplinas(gradeBase));
@@ -249,7 +252,8 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           nomeCurso === 'Sistemas de Informação' ? disciplinasSI : 
           nomeCurso === 'Engenharia Civil' ? disciplinasCivil : 
           nomeCurso === 'Engenharia Elétrica' ? disciplinasEletrica : // <-- Adicione esta linha
-          disciplinasIniciais;
+          nomeCurso === 'Matemática' ? disciplinasMatematica : 
+      disciplinasIniciais;
 
     setDisciplinas(atualizarTodasDisciplinas(gradeBase));
   }, [atualizarTodasDisciplinas, nomeCurso]);

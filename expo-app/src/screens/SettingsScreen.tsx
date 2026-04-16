@@ -27,7 +27,8 @@ export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
     'Engenharia de Sistemas',
     'Sistemas de Informação',
     'Engenharia Civil',
-    'Engenharia Elétrica'
+    'Engenharia Elétrica',
+    'Matemática'
   ];
 
   const salvarNovoCurso = () => {
