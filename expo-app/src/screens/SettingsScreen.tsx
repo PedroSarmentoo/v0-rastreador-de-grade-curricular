@@ -94,7 +94,7 @@ export function SettingsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Calculadora Unimontes</Text>
+              <Text style={styles.modalTitle}>Calculadora</Text>
               <TouchableOpacity onPress={() => {
                 setModalVisible(false);
                 setTpsl(''); // Limpa o input ao fechar
