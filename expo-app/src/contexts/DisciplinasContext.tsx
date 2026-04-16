@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Disciplina, DisciplinaNode, StatusDisciplina, AtividadesComplementares } from '../types';
-import { disciplinasIniciais } from '../data/disciplinas';
 
+// Importações das grades
+import { disciplinasIniciais } from '../data/disciplinas';
 import { disciplinasSI } from '../data/disciplinasSI'; 
+import { disciplinasMatematica } from '../data/disciplinasMatematica'; 
 
 const ACC_STORAGE_KEY = '@grade_curricular_acc_v2';
 const COURSE_NAME_KEY = '@grade_curricular_nome_curso';
 
 const getStorageKeyPorCurso = (curso: string) => {
   if (curso === 'Engenharia de Sistemas') {
-    return '@grade_curricular_dados_v1'; 
+    return '@grade_curricular_dados_v1';
   }
   return `@grade_curricular_dados_${curso.replace(/\s+/g, '_')}`;
 };
@@ -85,6 +87,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     return Array.from(mapa.values());
   }, []);
 
+  // CARREGAR DADOS
   useEffect(() => {
     async function carregarDados() {
       try {
@@ -103,7 +106,12 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           const dadosSalvos = JSON.parse(jsonValue);
           setDisciplinas(atualizarTodasDisciplinas(dadosSalvos));
         } else {
-          const gradeBase = cursoAtual === 'Sistemas de Informação' ? disciplinasSI : disciplinasIniciais;
+          // LÓGICA CORRIGIDA AQUI:
+          const gradeBase = 
+            cursoAtual === 'Sistemas de Informação' ? disciplinasSI : 
+            cursoAtual === 'Matemática' ? disciplinasMatematica : 
+            disciplinasIniciais;
+
           setDisciplinas(atualizarTodasDisciplinas(gradeBase));
         }
         
@@ -121,6 +129,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     carregarDados();
   }, [atualizarTodasDisciplinas]);
 
+  // SALVAR DADOS
   useEffect(() => {
     async function salvarDados() {
       if (!isLoading && disciplinas.length > 0) {
@@ -139,6 +148,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     salvarDados();
   }, [disciplinas, atividades, isLoading, nomeCurso]);
 
+  // TROCAR CURSO
   const handleSetNomeCurso = useCallback(async (novoCurso: string) => {
     try {
       setIsLoading(true);
@@ -151,7 +161,12 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
       if (jsonValue !== null) {
         setDisciplinas(atualizarTodasDisciplinas(JSON.parse(jsonValue)));
       } else {
-        const gradeBase = novoCurso === 'Sistemas de Informação' ? disciplinasSI : disciplinasIniciais;
+        // LÓGICA CORRIGIDA AQUI TAMBÉM:
+        const gradeBase = 
+          novoCurso === 'Sistemas de Informação' ? disciplinasSI : 
+          novoCurso === 'Matemática' ? disciplinasMatematica : 
+          disciplinasIniciais;
+
         setDisciplinas(atualizarTodasDisciplinas(gradeBase));
       }
     } catch (e) {
@@ -226,8 +241,14 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     }
   }, [atualizarTodasDisciplinas]);
 
+  // RESETAR GRADE
   const resetarGrade = useCallback(() => {
-    const gradeBase = nomeCurso === 'Sistemas de Informação' ? disciplinasSI : disciplinasIniciais;
+    // LÓGICA CORRIGIDA AQUI TAMBÉM:
+    const gradeBase = 
+      nomeCurso === 'Sistemas de Informação' ? disciplinasSI : 
+      nomeCurso === 'Matemática' ? disciplinasMatematica : 
+      disciplinasIniciais;
+
     setDisciplinas(atualizarTodasDisciplinas(gradeBase));
   }, [atualizarTodasDisciplinas, nomeCurso]);
 

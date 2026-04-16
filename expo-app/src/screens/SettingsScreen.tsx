@@ -21,7 +21,8 @@ export function SettingsScreen() {
   // Lista de cursos disponíveis no aplicativo
   const cursosDisponiveis = [
     'Engenharia de Sistemas',
-    'Sistemas de Informação'
+    'Sistemas de Informação',
+    'Matemática'
   ];
 
   const handleTpslChange = (text: string) => {
