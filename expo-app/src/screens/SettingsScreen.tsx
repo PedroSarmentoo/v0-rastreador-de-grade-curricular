@@ -1,24 +1,27 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, TextInput, TouchableOpacity, Modal, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Calculator, X, ChevronDown, BookOpen, Check, RotateCcw } from 'lucide-react-native'; 
+import { User, Calculator, X, ChevronDown, BookOpen, Check, RotateCcw, PlusCircle } from 'lucide-react-native'; 
 import { colors } from '../theme/colors';
 import { MenuGrade } from '../components/MenuGrade';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 
-// 1. Interface que avisa que podemos receber a função do App.tsx
 interface SettingsScreenProps {
   onNavigateToGrade?: () => void;
 }
 
-// 2. Recebemos a função aqui (e sem nenhum useNavigation!)
 export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
   const { nomeCurso, setNomeCurso, resetarGrade } = useDisciplinas();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [tpsl, setTpsl] = useState('');
+  
   const [modalCursosVisible, setModalCursosVisible] = useState(false);
   const [cursoTemporario, setCursoTemporario] = useState(nomeCurso);
+
+  // Estados para o curso personalizado
+  const [modalNovoCursoVisible, setModalNovoCursoVisible] = useState(false);
+  const [nomeNovoCurso, setNomeNovoCurso] = useState('');
   
   const cursosDisponiveis = [
     'Engenharia de Sistemas',
@@ -28,12 +31,15 @@ export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
   ];
 
   const salvarNovoCurso = () => {
+    if (cursoTemporario === 'Outro') {
+      setModalCursosVisible(false);
+      setModalNovoCursoVisible(true);
+      return;
+    }
+
     if (cursoTemporario !== nomeCurso) {
       setNomeCurso(cursoTemporario);
-      
-      // Muda a aba para 'grade' usando a função do App.tsx
       if (onNavigateToGrade) onNavigateToGrade();
-
       if (Platform.OS === 'web') {
         window.alert(`Sucesso! Sua grade foi alterada para ${cursoTemporario}.`);
       }
@@ -41,12 +47,30 @@ export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
     setModalCursosVisible(false);
   };
 
+  const confirmarNovoCursoPersonalizado = () => {
+    if (nomeNovoCurso.trim().length < 3) {
+      Platform.OS === 'web' 
+        ? window.alert("O nome do curso deve ter pelo menos 3 letras.")
+        : Alert.alert("Nome Inválido", "O nome do curso deve ter pelo menos 3 letras.");
+      return;
+    }
+
+    setNomeCurso(nomeNovoCurso.trim());
+    setModalNovoCursoVisible(false);
+    setNomeNovoCurso('');
+    
+    // Rola a tela para baixo até a área de importação se possível, 
+    // ou apenas exibe um aviso orientando o usuário.
+    if (Platform.OS === 'web') {
+      window.alert(`Curso '${nomeNovoCurso}' criado! Agora role para baixo e use o botão 'Importar Grade' para adicionar suas matérias.`);
+    } else {
+      Alert.alert("Curso Criado!", `Agora use a área de Opções da Grade Curricular para importar as matérias de ${nomeNovoCurso}.`);
+    }
+  };
+
   const confirmarReiniciar = () => {
     resetarGrade();
-    
-    // Muda a aba para 'grade' usando a função do App.tsx
     if (onNavigateToGrade) onNavigateToGrade();
-
     if (Platform.OS === 'web') {
       window.alert('Grade reiniciada com sucesso!');
     }
@@ -91,7 +115,8 @@ export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
             <TouchableOpacity 
               style={styles.selectInput}
               onPress={() => {
-                setCursoTemporario(nomeCurso);
+                // Se o curso atual não for um dos padrões, seleciona temporariamente 'Outro'
+                setCursoTemporario(cursosDisponiveis.includes(nomeCurso) ? nomeCurso : 'Outro');
                 setModalCursosVisible(true);
               }}
               activeOpacity={0.7}
@@ -142,14 +167,16 @@ export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
           </TouchableOpacity>
         </View>
 
+        {/* COMPONENTE DE IMPORTAR/EXPORTAR */}
         <MenuGrade />
         
         <View style={styles.aboutContainer}>
           <Text style={styles.aboutTitle}>Sobre o App</Text>
-          <Text style={styles.aboutText}>UniGrade v1.2.4</Text>
+          <Text style={styles.aboutText}>UniGrade v1.2.5</Text>
         </View>
       </ScrollView>
 
+      {/* --- MODAL DA CALCULADORA --- */}
       <Modal animationType="slide" transparent={true} visible={modalVisible}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -186,6 +213,7 @@ export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
         </View>
       </Modal>
 
+      {/* --- MODAL SELEÇÃO DE CURSOS PRINCIPAL --- */}
       <Modal animationType="slide" transparent={true} visible={modalCursosVisible}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { minHeight: 400 }]}>
@@ -196,6 +224,8 @@ export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
+              
+              {/* Renderiza os cursos padrão */}
               {cursosDisponiveis.map((curso, index) => (
                 <TouchableOpacity 
                   key={index}
@@ -209,6 +239,21 @@ export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
                   {cursoTemporario === curso && <Check size={20} color={colors.disponivel} />}
                 </TouchableOpacity>
               ))}
+
+              {/* Opção para adicionar Outro Curso */}
+              <TouchableOpacity 
+                style={[styles.cursoOption, cursoTemporario === 'Outro' && styles.cursoOptionSelected, { marginTop: 8, borderStyle: 'dashed' }]}
+                onPress={() => setCursoTemporario('Outro')}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <PlusCircle size={20} color={cursoTemporario === 'Outro' ? colors.disponivel : colors.textMuted} />
+                  <Text style={[styles.cursoOptionText, cursoTemporario === 'Outro' && { color: colors.disponivel, fontWeight: 'bold' }]}>
+                    Adicionar Outro Curso...
+                  </Text>
+                </View>
+                {cursoTemporario === 'Outro' && <Check size={20} color={colors.disponivel} />}
+              </TouchableOpacity>
+
             </ScrollView>
             <View style={styles.modalFooter}>
               <TouchableOpacity 
@@ -217,13 +262,50 @@ export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
                 disabled={cursoTemporario === nomeCurso}
               >
                 <Text style={[styles.confirmButtonText, cursoTemporario === nomeCurso && { color: colors.textMuted }]}>
-                  {cursoTemporario === nomeCurso ? 'Feito' : 'Confirmar Alteração'}
+                  {cursoTemporario === nomeCurso ? 'Feito' : cursoTemporario === 'Outro' ? 'Continuar' : 'Confirmar Alteração'}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      {/* --- MODAL PARA DIGITAR O NOME DO NOVO CURSO --- */}
+      <Modal animationType="fade" transparent={true} visible={modalNovoCursoVisible}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { minHeight: 250 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Novo Curso</Text>
+              <TouchableOpacity onPress={() => { setModalNovoCursoVisible(false); setNomeNovoCurso(''); }}>
+                <X size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.label}>Qual é o nome do seu curso?</Text>
+            <TextInput
+              style={styles.input}
+              value={nomeNovoCurso}
+              onChangeText={setNomeNovoCurso}
+              placeholder="Ex: Medicina, Direito, Letras..."
+              placeholderTextColor={colors.textMuted}
+              autoFocus={true}
+            />
+            <Text style={styles.helpText}>
+              Este nome ficará salvo. Depois, você precisará importar a sua planilha da grade.
+            </Text>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={styles.confirmButton}
+                onPress={confirmarNovoCursoPersonalizado}
+              >
+                <Text style={styles.confirmButtonText}>Criar Curso</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -262,4 +344,5 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: colors.text },
   resultContainer: { marginTop: 24, padding: 16, backgroundColor: colors.surfaceLight, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   resultText: { color: colors.text, fontSize: 16, textAlign: 'center' },
+  helpText: { fontSize: 12, color: colors.textMuted, marginTop: 10, fontStyle: 'italic' },
 });
