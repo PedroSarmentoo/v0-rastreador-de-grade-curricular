@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { GraduationCap, Book, CheckCircle, PlayCircle, Calendar, Unlock, Lock } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { GraduationCap, Book, CheckCircle, PlayCircle, Calendar, Unlock, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 
@@ -16,15 +16,16 @@ export function EstatisticasHeader() {
     disciplinasBloqueadas
   } = useDisciplinas();
 
+  // Estado para controlar a visibilidade da formatura
+  const [mostrarFormatura, setMostrarFormatura] = useState(true);
+
   return (
     <View style={styles.container}>
       <View style={styles.titleSection}>
-        {/* Ícone de Capelo (Formatura) no título */}
         <GraduationCap size={28} color={colors.disponivel} />
         <Text style={styles.title}>Grade Curricular</Text>
       </View>
       
-      {/* TÍTULO DINÂMICO APLICADO AQUI */}
       <Text style={styles.subtitle}>{nomeCurso}</Text>
       
       <View style={styles.progressContainer}>
@@ -43,7 +44,7 @@ export function EstatisticasHeader() {
         <View style={styles.statCard}>
           <Book size={20} color={colors.disponivel} />
           <Text style={styles.statValue}>{totalDisciplinas}</Text>
-          <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Total</Text>
+          <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Total de disciplinas</Text>
         </View>
         
         <View style={styles.statCard}>
@@ -58,11 +59,27 @@ export function EstatisticasHeader() {
           <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Cursando</Text>
         </View>
         
-        <View style={styles.statCard}>
+        {/* --- CARD DA FORMATURA COM OLHO NO CANTO INFERIOR DIREITO --- */}
+        <View style={[styles.statCard, styles.formaturaCard]}>
           <Calendar size={20} color={colors.text} />
-          <Text style={styles.statValue}>{anoEstimadoFormatura}</Text>
+          <Text style={[styles.statValue, !mostrarFormatura && { letterSpacing: 2, fontSize: 16 }]}>
+            {mostrarFormatura ? anoEstimadoFormatura : '••••'}
+          </Text>
           <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Formatura</Text>
+          
+          <TouchableOpacity 
+            style={styles.eyeButtonFormatura}
+            onPress={() => setMostrarFormatura(!mostrarFormatura)}
+            activeOpacity={0.6}
+          >
+            {mostrarFormatura ? (
+              <Eye size={12} color={colors.textMuted} />
+            ) : (
+              <EyeOff size={12} color={colors.textMuted} />
+            )}
+          </TouchableOpacity>
         </View>
+        {/* ----------------------------------------------------------- */}
 
         <View style={styles.statCard}>
           <Unlock size={20} color={colors.disponivel} />
@@ -155,4 +172,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: '100%', 
   },
+  // ESTILOS NOVOS PARA O OLHO NO CANTO
+formaturaCard: {
+    position: 'relative', 
+  },
+  eyeButtonFormatura: {
+    position: 'absolute',
+    top: 6,   // <-- MUDOU AQUI: de 'bottom' para 'top'
+    right: 6,
+    padding: 4,
+    zIndex: 10, // Garante que o clique funcione bem
+  }
 });
