@@ -16,7 +16,8 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#1a1a2e"
-      }
+      },
+      "package": "com.anonymous.rastreadorgradecurricular"
     },
     "web": {
       "bundler": "metro"

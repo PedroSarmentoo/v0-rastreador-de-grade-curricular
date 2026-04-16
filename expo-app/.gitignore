@@ -1,0 +1,25 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+
+# Android/IDE
+.idea/
+*.iml
+local.properties
+android/build/
+android/app/build/
+android/.gradle/
+android/.idea/
+
+# iOS
+ios/build/
+ios/Pods/
+
+# web
+web-build/
