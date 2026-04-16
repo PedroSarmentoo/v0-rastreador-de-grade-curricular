@@ -12,6 +12,8 @@ import { AtividadesScreen } from './src/screens/AtividadesScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { colors } from './src/theme/colors';
 
+import { Analytics } from '@vercel/analytics/react';
+
 function MainNavigator() {
   const [activeTab, setActiveTab] = useState<'grade' | 'atividades' | 'settings'>('grade');
   const insets = useSafeAreaInsets(); 
@@ -52,6 +54,7 @@ export default function App() {
       <DisciplinasProvider>
         <MainNavigator />
       </DisciplinasProvider>
+      <Analytics />
     </SafeAreaProvider>
   );
 }
