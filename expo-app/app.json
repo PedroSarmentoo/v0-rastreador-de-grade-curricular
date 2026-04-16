@@ -23,6 +23,7 @@
       "package": "com.anonymous.rastreadorgradecurricular"
     },
     "web": {
+      "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
