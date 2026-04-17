@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Disciplina, DisciplinaNode, StatusDisciplina, AtividadesComplementares } from '../types';
+import { Disciplina, DisciplinaNode, StatusDisciplina, AtividadesComplementares, AvaliacoesPorDisciplina, Avaliacao, AvaliacaoTipo } from '../types';
 
 // Importações das grades
 import { disciplinasIniciais } from '../data/disciplinas';
@@ -11,6 +11,7 @@ import { disciplinasMatematica } from '../data/disciplinasMatematica';
 
 const ACC_STORAGE_KEY = '@grade_curricular_acc_v2';
 const COURSE_NAME_KEY = '@grade_curricular_nome_curso';
+const AVALIACOES_KEY = '@grade_curricular_avaliacoes_v1';
 
 const getStorageKeyPorCurso = (curso: string) => {
   if (curso === 'Engenharia de Sistemas') {
@@ -43,12 +44,17 @@ interface DisciplinasContextData {
   isLoading: boolean;
   importarGrade: (novaGrade: Disciplina[]) => void;
   resetarGrade: () => void;
+  avaliacoes: AvaliacoesPorDisciplina;
+  addAvaliacao: (disciplinaId: string, avaliacao: Omit<Avaliacao, 'id' | 'dataCriacao'>) => void;
+  removeAvaliacao: (disciplinaId: string, avaliacaoId: string) => void;
+  obterNotaMedia: (disciplinaId: string) => string | null;
 }
 
 const DisciplinasContext = createContext<DisciplinasContextData | undefined>(undefined);
 
 export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [avaliacoes, setAvaliacoes] = useState<AvaliacoesPorDisciplina>({});
   const [nomeCurso, setNomeCursoState] = useState('Engenharia de Sistemas'); 
   const [atividades, setAtividades] = useState<AtividadesComplementares>({
     temAiex: false,
@@ -123,6 +129,11 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           setAtividades(JSON.parse(accValue));
         }
 
+        const avaliacoesValue = await AsyncStorage.getItem(AVALIACOES_KEY);
+        if (avaliacoesValue !== null) {
+          setAvaliacoes(JSON.parse(avaliacoesValue));
+        }
+
       } catch (e) {
         console.error('Erro ao carregar dados:', e);
       } finally {
@@ -143,13 +154,16 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           
           const accValue = JSON.stringify(atividades);
           await AsyncStorage.setItem(ACC_STORAGE_KEY, accValue);
+          
+          const avaliacoesValue = JSON.stringify(avaliacoes);
+          await AsyncStorage.setItem(AVALIACOES_KEY, avaliacoesValue);
         } catch (e) {
           console.error('Erro ao salvar dados:', e);
         }
       }
     }
     salvarDados();
-  }, [disciplinas, atividades, isLoading, nomeCurso]);
+  }, [disciplinas, atividades, avaliacoes, isLoading, nomeCurso]);
 
   // TROCAR CURSO
   const handleSetNomeCurso = useCallback(async (novoCurso: string) => {
@@ -394,6 +408,55 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     [disciplinas]
   );
 
+  const addAvaliacao = useCallback((disciplinaId: string, avaliacao: Omit<Avaliacao, 'id' | 'dataCriacao'>) => {
+    setAvaliacoes((prev) => {
+      const novaAvaliacao: Avaliacao = {
+        ...avaliacao,
+        id: Math.random().toString(36).substring(2, 9),
+        dataCriacao: Date.now()
+      };
+      
+      const atualizados = prev[disciplinaId] ? [...prev[disciplinaId]] : [];
+      atualizados.push(novaAvaliacao);
+      
+      return { ...prev, [disciplinaId]: atualizados };
+    });
+  }, []);
+
+  const removeAvaliacao = useCallback((disciplinaId: string, avaliacaoId: string) => {
+    setAvaliacoes((prev) => {
+      if (!prev[disciplinaId]) return prev;
+      
+      const atualizados = prev[disciplinaId].filter(a => a.id !== avaliacaoId);
+      
+      if (atualizados.length === 0) {
+        const newState = { ...prev };
+        delete newState[disciplinaId];
+        return newState;
+      }
+      
+      return { ...prev, [disciplinaId]: atualizados };
+    });
+  }, []);
+
+  const obterNotaMedia = useCallback((disciplinaId: string) => {
+    const lista = avaliacoes[disciplinaId];
+    if (!lista || lista.length === 0) return null;
+
+    let somaNotas = 0;
+    let somaPesos = 0;
+
+    lista.forEach(av => {
+      if (av.nota !== undefined) {
+        somaNotas += av.nota * (av.peso || 1);
+        somaPesos += (av.peso || 1);
+      }
+    });
+
+    if (somaPesos === 0) return null;
+    return (somaNotas / somaPesos).toFixed(1);
+  }, [avaliacoes]);
+
   return (
     <DisciplinasContext.Provider
       value={{
@@ -416,7 +479,11 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         semestres,
         isLoading,
         importarGrade,
-        resetarGrade
+        resetarGrade,
+        avaliacoes,
+        addAvaliacao,
+        removeAvaliacao,
+        obterNotaMedia
       }}
     >
       {children}

@@ -1,18 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-// 1. Importamos os ícones do Lucide (incluindo o GitBranch para os pré-requisitos)
-import { CheckSquare, PlaySquare, Square, Lock, GitBranch } from 'lucide-react-native';
+// 1. Importamos os Ãcones do Lucide (incluindo o GitBranch para os prÃ©-requisitos)
+import { CheckSquare, PlaySquare, Square, Lock, GitBranch, ClipboardList } from 'lucide-react-native';
 import { Disciplina } from '../types';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
+import { AvaliacoesModal } from './modals/AvaliacoesModal';
 
 interface Props {
   disciplina: Disciplina;
 }
 
 export function DisciplinaCard({ disciplina }: Props) {
-  const { toggleDisciplina, disciplinas } = useDisciplinas();
+  const { toggleDisciplina, disciplinas, obterNotaMedia } = useDisciplinas();
+  const [modalVisible, setModalVisible] = useState(false);
   const { id, nome, status, preRequisitos } = disciplina;
+
+  const media = obterNotaMedia(id);
 
   const getCardStyle = () => {
     switch (status) {
@@ -115,11 +119,33 @@ export function DisciplinaCard({ disciplina }: Props) {
         </View>
       )}
 
-      <View style={styles.statusBadge}>
-        <Text style={[styles.statusText, { color: getIconColor() }]}>
-          {status === 'concluida' ? 'Concluída' : status === 'cursando' ? 'Cursando' : status === 'disponivel' ? 'Disponível' : 'Bloqueada'}
-        </Text>
+      <View style={styles.footerContainer}>
+        <View style={styles.statusBadge}>
+          <Text style={[styles.statusText, { color: getIconColor() }]}>
+            {status === 'concluida' ? 'ConcluÃda' : status === 'cursando' ? 'Cursando' : status === 'disponivel' ? 'DisponÃvel' : 'Bloqueada'}
+          </Text>
+        </View>
+
+        {status !== 'bloqueada' && status !== 'disponivel' && (
+          <TouchableOpacity 
+            style={styles.avaliacoesButton}
+            onPress={() => setModalVisible(true)}
+          >
+            {media ? (
+              <Text style={[styles.mediaText, { color: getIconColor() }]}>{media}</Text>
+            ) : (
+              <ClipboardList size={16} color={getIconColor()} />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
+
+      <AvaliacoesModal
+        visible={modalVisible}
+        disciplinaId={id}
+        disciplinaNome={nome}
+        onClose={() => setModalVisible(false)}
+      />
     </TouchableOpacity>
   );
 }
@@ -165,8 +191,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textMuted,
   },
-  statusBadge: {
+  footerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
     marginTop: 'auto',
+  },
+  statusBadge: {
   },
   statusText: {
     fontSize: 11,
@@ -174,4 +205,17 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  avaliacoesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: colors.surfaceHover,
+  },
+  mediaText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  }
 });

@@ -22,6 +22,19 @@ export interface AtividadeItem {
   quantidadeOriginal?: number; // Para mostrar o valor antes da conversão
 }
 
+export type AvaliacaoTipo = 'P1' | 'P2' | 'P3' | 'EC' | 'AeS' | 'Sub' | 'Trabalho' | 'Outro';
+
+export interface Avaliacao {
+  id: string;
+  tipo: AvaliacaoTipo;
+  nota: number;
+  peso?: number; // Para ditar impacto da nota (ex: peso 1, peso 2). Padrão = 1.
+  descricao?: string;
+  dataCriacao: number;
+}
+
+export type AvaliacoesPorDisciplina = Record<string, Avaliacao[]>;
+
 export interface AtividadesComplementares {
   temAiex: boolean;
   listaAcc: AtividadeItem[];
