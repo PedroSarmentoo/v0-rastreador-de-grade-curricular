@@ -6,6 +6,7 @@ export interface Disciplina {
   semestre: number;
   preRequisitos: string[];
   status: StatusDisciplina;
+  cargaHoraria?: number;
 }
 
 export interface DisciplinaNode extends Disciplina {
