@@ -1,7 +1,13 @@
 export const colors = {
   background: '#0f0f1a',
   surface: '#1a1a2e',
+  surfaceHover: '#252540',
   surfaceLight: '#252540',
+  
+  primary: '#6366f1',
+  success: '#22c55e',
+  warning: '#f59e0b',
+  error: '#ef4444',
   
   text: '#f0f0f5',
   textMuted: '#8888a0',
