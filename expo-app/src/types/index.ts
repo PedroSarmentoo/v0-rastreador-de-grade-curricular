@@ -22,6 +22,35 @@ export interface AtividadeItem {
   quantidadeOriginal?: number; // Para mostrar o valor antes da conversão
 }
 
+export type AvaliacaoTipo = 'Prova 1' | 'Prova 2' | 'Prova 3' | 'Extra Curricular' | 'Atividade em Sala' | 'Substitutiva' | 'Trabalho' | 'Outro';
+
+export interface Avaliacao {
+  id: string;
+  tipo: AvaliacaoTipo;
+  nota?: number; // Para compatibilidade
+  peso?: number; // Para compatibilidade
+  descricao?: string;
+  semestre?: string;
+  nomeProva?: string;
+  arquivoUri?: string;
+  arquivoNome?: string;
+  dataCriacao: number;
+}
+
+export type AvaliacoesPorDisciplina = Record<string, Avaliacao[]>;
+
+export interface Arquivo {
+  id: string;
+  disciplinaId: string;
+  nome: string;
+  uri: string;
+  tipo?: string;
+  tamanho?: number;
+  dataAdicao: number;
+}
+
+export type ArquivosPorDisciplina = Record<string, Arquivo[]>;
+
 export interface AtividadesComplementares {
   temAiex: boolean;
   listaAcc: AtividadeItem[];

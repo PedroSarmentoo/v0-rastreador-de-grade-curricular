@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
-import { UploadCloud, Share, Download, RefreshCw, Info } from 'lucide-react-native';
+import { UploadCloud, Share, Download, RefreshCw, Info, BookOpen } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -197,7 +197,6 @@ export function MenuGrade() {
     <View style={styles.container}>
       <Text style={styles.title}>Opções da Grade Curricular</Text>
       <View style={styles.actions}>
-        
         <TouchableOpacity style={styles.buttonAction} onPress={handleImportGrade}>
           <UploadCloud size={20} color={colors.disponivel} />
           <Text style={styles.buttonText}>Importar Grade</Text>

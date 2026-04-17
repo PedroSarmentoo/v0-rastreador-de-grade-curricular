@@ -4,7 +4,6 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 
-// 1. Importamos os ícones do Lucide em vez do Ionicons
 import { GraduationCap, FileText, Settings } from 'lucide-react-native';
 
 import { DisciplinasProvider } from './src/contexts/DisciplinasContext';
@@ -12,6 +11,8 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { AtividadesScreen } from './src/screens/AtividadesScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { colors } from './src/theme/colors';
+
+import { Analytics } from '@vercel/analytics/react';
 
 function MainNavigator() {
   const [activeTab, setActiveTab] = useState<'grade' | 'atividades' | 'settings'>('grade');
@@ -22,12 +23,12 @@ function MainNavigator() {
       <View style={styles.content}>
         {activeTab === 'grade' && <HomeScreen />}
         {activeTab === 'atividades' && <AtividadesScreen />}
-        {activeTab === 'settings' && <SettingsScreen />}
+        {/* PASSAMOS A FUNÇÃO DE NAVEGAÇÃO AQUI */}
+        {activeTab === 'settings' && <SettingsScreen onNavigateToGrade={() => setActiveTab('grade')} />}
       </View>
 
       <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('grade')} activeOpacity={0.7}>
-          {/* 2. Trocamos a tag <Ionicons> pelos componentes do Lucide */}
           <GraduationCap size={24} color={activeTab === 'grade' ? colors.disponivel : colors.textMuted} />
           <Text style={[styles.tabLabel, activeTab === 'grade' && styles.tabLabelActive]}>Grade</Text>
         </TouchableOpacity>
@@ -53,6 +54,7 @@ export default function App() {
       <DisciplinasProvider>
         <MainNavigator />
       </DisciplinasProvider>
+      <Analytics />
     </SafeAreaProvider>
   );
 }

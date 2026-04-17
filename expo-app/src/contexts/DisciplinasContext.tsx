@@ -1,16 +1,21 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Disciplina, DisciplinaNode, StatusDisciplina, AtividadesComplementares } from '../types';
-import { disciplinasIniciais } from '../data/disciplinas';
+import { Disciplina, DisciplinaNode, StatusDisciplina, AtividadesComplementares, AvaliacoesPorDisciplina, Avaliacao, AvaliacaoTipo } from '../types';
 
+// Importações das grades
+import { disciplinasIniciais } from '../data/disciplinas';
 import { disciplinasSI } from '../data/disciplinasSI'; 
+import { disciplinasCivil } from '../data/disciplinasCivil'; 
+import { disciplinasEletrica } from '../data/disciplinasEletrica';
+import { disciplinasMatematica } from '../data/disciplinasMatematica'; 
 
 const ACC_STORAGE_KEY = '@grade_curricular_acc_v2';
 const COURSE_NAME_KEY = '@grade_curricular_nome_curso';
+const AVALIACOES_KEY = '@grade_curricular_avaliacoes_v1';
 
 const getStorageKeyPorCurso = (curso: string) => {
   if (curso === 'Engenharia de Sistemas') {
-    return '@grade_curricular_dados_v1'; 
+    return '@grade_curricular_dados_v1';
   }
   return `@grade_curricular_dados_${curso.replace(/\s+/g, '_')}`;
 };
@@ -39,12 +44,18 @@ interface DisciplinasContextData {
   isLoading: boolean;
   importarGrade: (novaGrade: Disciplina[]) => void;
   resetarGrade: () => void;
+  avaliacoes: AvaliacoesPorDisciplina;
+  addAvaliacao: (disciplinaId: string, avaliacao: Omit<Avaliacao, 'id' | 'dataCriacao'>) => void;
+  removeAvaliacao: (disciplinaId: string, avaliacaoId: string) => void;
+  editAvaliacao: (disciplinaId: string, avaliacaoId: string, atualizacao: Partial<Omit<Avaliacao, 'id' | 'dataCriacao'>>) => void;
+  obterNotaMedia: (disciplinaId: string) => string | null;
 }
 
 const DisciplinasContext = createContext<DisciplinasContextData | undefined>(undefined);
 
 export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [avaliacoes, setAvaliacoes] = useState<AvaliacoesPorDisciplina>({});
   const [nomeCurso, setNomeCursoState] = useState('Engenharia de Sistemas'); 
   const [atividades, setAtividades] = useState<AtividadesComplementares>({
     temAiex: false,
@@ -85,6 +96,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     return Array.from(mapa.values());
   }, []);
 
+  // CARREGAR DADOS
   useEffect(() => {
     async function carregarDados() {
       try {
@@ -103,13 +115,24 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           const dadosSalvos = JSON.parse(jsonValue);
           setDisciplinas(atualizarTodasDisciplinas(dadosSalvos));
         } else {
-          const gradeBase = cursoAtual === 'Sistemas de Informação' ? disciplinasSI : disciplinasIniciais;
+          // 2. ATUALIZADO: Lógica de carga inicial com Engenharia Civil
+          const gradeBase = 
+            cursoAtual === 'Sistemas de Informação' ? disciplinasSI : 
+            cursoAtual === 'Engenharia Civil' ? disciplinasCivil : 
+            cursoAtual === 'Matemática' ? disciplinasMatematica : 
+            disciplinasIniciais;
+
           setDisciplinas(atualizarTodasDisciplinas(gradeBase));
         }
         
         const accValue = await AsyncStorage.getItem(ACC_STORAGE_KEY);
         if (accValue !== null) {
           setAtividades(JSON.parse(accValue));
+        }
+
+        const avaliacoesValue = await AsyncStorage.getItem(AVALIACOES_KEY);
+        if (avaliacoesValue !== null) {
+          setAvaliacoes(JSON.parse(avaliacoesValue));
         }
 
       } catch (e) {
@@ -121,6 +144,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     carregarDados();
   }, [atualizarTodasDisciplinas]);
 
+  // SALVAR DADOS
   useEffect(() => {
     async function salvarDados() {
       if (!isLoading && disciplinas.length > 0) {
@@ -131,14 +155,18 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           
           const accValue = JSON.stringify(atividades);
           await AsyncStorage.setItem(ACC_STORAGE_KEY, accValue);
+          
+          const avaliacoesValue = JSON.stringify(avaliacoes);
+          await AsyncStorage.setItem(AVALIACOES_KEY, avaliacoesValue);
         } catch (e) {
           console.error('Erro ao salvar dados:', e);
         }
       }
     }
     salvarDados();
-  }, [disciplinas, atividades, isLoading, nomeCurso]);
+  }, [disciplinas, atividades, avaliacoes, isLoading, nomeCurso]);
 
+  // TROCAR CURSO
   const handleSetNomeCurso = useCallback(async (novoCurso: string) => {
     try {
       setIsLoading(true);
@@ -151,7 +179,13 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
       if (jsonValue !== null) {
         setDisciplinas(atualizarTodasDisciplinas(JSON.parse(jsonValue)));
       } else {
-        const gradeBase = novoCurso === 'Sistemas de Informação' ? disciplinasSI : disciplinasIniciais;
+        // 3. ATUALIZADO: Lógica de troca de curso com Engenharia Civil
+        const gradeBase = 
+          novoCurso === 'Sistemas de Informação' ? disciplinasSI : 
+          novoCurso === 'Engenharia Civil' ? disciplinasCivil : 
+          novoCurso === 'Matemática' ? disciplinasMatematica : 
+          disciplinasIniciais;
+
         setDisciplinas(atualizarTodasDisciplinas(gradeBase));
       }
     } catch (e) {
@@ -226,8 +260,16 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     }
   }, [atualizarTodasDisciplinas]);
 
+  // RESETAR GRADE
   const resetarGrade = useCallback(() => {
-    const gradeBase = nomeCurso === 'Sistemas de Informação' ? disciplinasSI : disciplinasIniciais;
+    // 4. ATUALIZADO: Lógica de reset com Engenharia Civil
+    const gradeBase = 
+          nomeCurso === 'Sistemas de Informação' ? disciplinasSI : 
+          nomeCurso === 'Engenharia Civil' ? disciplinasCivil : 
+          nomeCurso === 'Engenharia Elétrica' ? disciplinasEletrica : // <-- Adicione esta linha
+          nomeCurso === 'Matemática' ? disciplinasMatematica : 
+      disciplinasIniciais;
+
     setDisciplinas(atualizarTodasDisciplinas(gradeBase));
   }, [atualizarTodasDisciplinas, nomeCurso]);
 
@@ -367,6 +409,67 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     [disciplinas]
   );
 
+  const addAvaliacao = useCallback((disciplinaId: string, avaliacao: Omit<Avaliacao, 'id' | 'dataCriacao'>) => {
+    setAvaliacoes((prev) => {
+      const novaAvaliacao: Avaliacao = {
+        ...avaliacao,
+        id: Math.random().toString(36).substring(2, 9),
+        dataCriacao: Date.now()
+      };
+      
+      const atualizados = prev[disciplinaId] ? [...prev[disciplinaId]] : [];
+      atualizados.push(novaAvaliacao);
+      
+      return { ...prev, [disciplinaId]: atualizados };
+    });
+  }, []);
+
+  const removeAvaliacao = useCallback((disciplinaId: string, avaliacaoId: string) => {
+    setAvaliacoes((prev) => {
+      if (!prev[disciplinaId]) return prev;
+      
+      const atualizados = prev[disciplinaId].filter(a => a.id !== avaliacaoId);
+      
+      if (atualizados.length === 0) {
+        const newState = { ...prev };
+        delete newState[disciplinaId];
+        return newState;
+      }
+      
+      return { ...prev, [disciplinaId]: atualizados };
+    });
+  }, []);
+
+  const editAvaliacao = useCallback((disciplinaId: string, avaliacaoId: string, atualizacao: Partial<Omit<Avaliacao, 'id' | 'dataCriacao'>>) => {
+    setAvaliacoes((prev) => {
+      if (!prev[disciplinaId]) return prev;
+      
+      const atualizados = prev[disciplinaId].map(a => 
+        a.id === avaliacaoId ? { ...a, ...atualizacao } : a
+      );
+      
+      return { ...prev, [disciplinaId]: atualizados };
+    });
+  }, []);
+
+  const obterNotaMedia = useCallback((disciplinaId: string) => {
+    const lista = avaliacoes[disciplinaId];
+    if (!lista || lista.length === 0) return null;
+
+    let somaNotas = 0;
+    let somaPesos = 0;
+
+    lista.forEach(av => {
+      if (av.nota !== undefined) {
+        somaNotas += av.nota * (av.peso || 1);
+        somaPesos += (av.peso || 1);
+      }
+    });
+
+    if (somaPesos === 0) return null;
+    return (somaNotas / somaPesos).toFixed(1);
+  }, [avaliacoes]);
+
   return (
     <DisciplinasContext.Provider
       value={{
@@ -389,7 +492,12 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         semestres,
         isLoading,
         importarGrade,
-        resetarGrade
+        resetarGrade,
+        avaliacoes,
+        addAvaliacao,
+        removeAvaliacao,
+        editAvaliacao,
+        obterNotaMedia
       }}
     >
       {children}
