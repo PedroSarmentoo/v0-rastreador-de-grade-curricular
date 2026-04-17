@@ -1,11 +1,20 @@
 export type StatusDisciplina = 'concluida' | 'disponivel' | 'bloqueada' | 'cursando';
 
+export interface Reprovacao {
+  id: string;
+  motivo: 'nota' | 'falta' | 'ambos';
+  nota?: number;
+  periodo?: string; // ex: 2023.1
+}
+
 export interface Disciplina {
   id: string;
   nome: string;
   semestre: number;
   preRequisitos: string[];
   status: StatusDisciplina;
+  notaFinal?: number;
+  reprovacoes?: Reprovacao[];
 }
 
 export interface DisciplinaNode extends Disciplina {

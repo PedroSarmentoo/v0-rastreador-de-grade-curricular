@@ -74,14 +74,22 @@ export function AvaliacoesModal({ visible, disciplinaId, disciplinaNome, onClose
     setEditingId(null);
   };
 
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(message);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
   const handleSave = () => {
     if (!arquivoUri) {
-      Alert.alert('Erro', 'Por favor, anexe um arquivo para salvar.');
+      showAlert('Erro', 'Por favor, anexe um arquivo para salvar.');
       return;
     }
     
     if (!semestreAno.trim() || !semestrePeriodo) {
-      Alert.alert('Erro', 'Por favor, preencha o ano e o período do semestre.');
+      showAlert('Erro', 'Por favor, preencha o ano e o período do semestre.');
       return;
     }
 
@@ -162,10 +170,10 @@ export function AvaliacoesModal({ visible, disciplinaId, disciplinaNome, onClose
             const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
             const createdUri = await FileSystem.StorageAccessFramework.createFileAsync(permissions.directoryUri, nome, '*/*');
             await FileSystem.writeAsStringAsync(createdUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-            Alert.alert('Sucesso', 'Arquivo salvo com sucesso!');
+            showAlert('Sucesso', 'Arquivo salvo com sucesso!');
           } catch (e) {
             console.error('Erro ao ler/escrever arquivo:', e);
-            Alert.alert('Erro', 'Ocorreu um erro ao salvar o arquivo no diretório selecionado.');
+            showAlert('Erro', 'Ocorreu um erro ao salvar o arquivo no diretório selecionado.');
           }
         }
       } else {
@@ -173,12 +181,12 @@ export function AvaliacoesModal({ visible, disciplinaId, disciplinaNome, onClose
         if (isAvailable) {
           await Sharing.shareAsync(uri, { dialogTitle: 'Salvar ' + nome });
         } else {
-          Alert.alert('Aviso', 'Compartilhamento não disponível no dispositivo.');
+          showAlert('Aviso', 'Compartilhamento não disponível no dispositivo.');
         }
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Erro', 'Não foi possível baixar ou salvar o arquivo.');
+      showAlert('Erro', 'Não foi possível baixar ou salvar o arquivo.');
     }
   };
 
