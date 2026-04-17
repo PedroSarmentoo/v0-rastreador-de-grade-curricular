@@ -47,6 +47,7 @@ interface DisciplinasContextData {
   avaliacoes: AvaliacoesPorDisciplina;
   addAvaliacao: (disciplinaId: string, avaliacao: Omit<Avaliacao, 'id' | 'dataCriacao'>) => void;
   removeAvaliacao: (disciplinaId: string, avaliacaoId: string) => void;
+  editAvaliacao: (disciplinaId: string, avaliacaoId: string, atualizacao: Partial<Omit<Avaliacao, 'id' | 'dataCriacao'>>) => void;
   obterNotaMedia: (disciplinaId: string) => string | null;
   matricular: (ids: string[]) => void; // A Interface já estava certa aqui!
 }
@@ -447,6 +448,18 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const editAvaliacao = useCallback((disciplinaId: string, avaliacaoId: string, atualizacao: Partial<Omit<Avaliacao, 'id' | 'dataCriacao'>>) => {
+    setAvaliacoes((prev) => {
+      if (!prev[disciplinaId]) return prev;
+      
+      const atualizados = prev[disciplinaId].map(a => 
+        a.id === avaliacaoId ? { ...a, ...atualizacao } : a
+      );
+      
+      return { ...prev, [disciplinaId]: atualizados };
+    });
+  }, []);
+
   const obterNotaMedia = useCallback((disciplinaId: string) => {
     const lista = avaliacoes[disciplinaId];
     if (!lista || lista.length === 0) return null;
@@ -492,7 +505,8 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         addAvaliacao,
         removeAvaliacao,
         obterNotaMedia,
-        matricular
+        matricular,
+        editAvaliacao,
       }}
     >
       {children}
