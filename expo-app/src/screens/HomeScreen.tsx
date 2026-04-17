@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, Text, TouchableOpacity, Modal, Alert, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BookOpen, X, CheckCircle, Info, Sparkles } from 'lucide-react-native';
+import { BookOpen, X, CheckCircle, Info, Sparkles, Flame } from 'lucide-react-native'; // <-- Flame importado aqui!
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { EstatisticasHeader } from '../components/EstatisticasHeader';
@@ -12,9 +12,8 @@ import { Confetti } from '../components/Confetti';
 export function HomeScreen() {
   const { semestres, progressoPercentual, disciplinas, matricular } = useDisciplinas();
 
-  // Leitor de tamanho de tela para tornar o layout responsivo
   const { width } = useWindowDimensions();
-  const isDesktop = width > 800; // Considera telas maiores que 800px como "Desktop"
+  const isDesktop = width > 800; 
 
   const [modalPlanejamentoVisible, setModalPlanejamentoVisible] = useState(false);
   const [materiasSelecionadas, setMateriasSelecionadas] = useState<string[]>([]);
@@ -23,11 +22,13 @@ export function HomeScreen() {
     return disciplinas.filter(d => d.status === 'disponivel');
   }, [disciplinas]);
 
-  const sugerirGradeIdeal = () => {
-    const contarDependentes = (idMateria: string) => {
-      return disciplinas.filter(d => d.preRequisitos.includes(idMateria)).length;
-    };
+  // --- O RADAR DE GARGALOS ---
+  // Conta quantas matérias no curso dependem desta disciplina
+  const contarDependentes = useCallback((idMateria: string) => {
+    return disciplinas.filter(d => d.preRequisitos.includes(idMateria)).length;
+  }, [disciplinas]);
 
+  const sugerirGradeIdeal = () => {
     const materiasOrdenadas = [...materiasDisponiveis].sort((a, b) => {
       const pesoA = contarDependentes(a.id);
       const pesoB = contarDependentes(b.id);
@@ -127,18 +128,13 @@ export function HomeScreen() {
       >
         <EstatisticasHeader />
         
-        {/* --- ÁREA DE AÇÃO TOTALMENTE RESPONSIVA --- */}
         <View style={[styles.actionContainer, !isDesktop && styles.actionContainerMobile]}>
-          
-          {/* 1. Esquerda: Bloco invisível para dar equilíbrio (Só aparece no desktop) */}
           {isDesktop && <View style={styles.spacerLeft} />}
           
-          {/* 2. Centro: Legenda (Sempre centralizada) */}
           <View style={styles.centerLegenda}>
             <Legenda />
           </View>
           
-          {/* 3. Direita: Botão (No PC fica à direita, no Celular vai para o meio) */}
           <View style={[styles.rightAction, !isDesktop && styles.rightActionMobile]}>
             <TouchableOpacity 
               style={styles.inlinePlanButton}
@@ -155,7 +151,6 @@ export function HomeScreen() {
               )}
             </TouchableOpacity>
           </View>
-
         </View>
         
         {semestres.map((semestre) => (
@@ -202,6 +197,10 @@ export function HomeScreen() {
                 
                 {materiasDisponiveis.map(materia => {
                   const isSelected = materiasSelecionadas.includes(materia.id);
+                  // Verifica se é gargalo (tranca 2 ou mais matérias)
+                  const qtdDependentes = contarDependentes(materia.id);
+                  const isGargalo = qtdDependentes >= 2;
+
                   return (
                     <TouchableOpacity 
                       key={materia.id}
@@ -210,11 +209,25 @@ export function HomeScreen() {
                       activeOpacity={0.7}
                     >
                       <View style={{ flex: 1, paddingRight: 10 }}>
-                        <Text style={[styles.materiaNomeCarrinho, isSelected && { color: '#FFF' }]}>{materia.nome}</Text>
+                        
+                        {/* NOME DA MATÉRIA + SELO DE GARGALO */}
+                        <View style={styles.nomeContainer}>
+                          <Text style={[styles.materiaNomeCarrinho, isSelected && { color: '#FFF' }]}>
+                            {materia.nome}
+                          </Text>
+                          {isGargalo && (
+                            <View style={styles.badgeGargalo}>
+                              <Flame size={14} color="#EF4444" />
+                              <Text style={styles.badgeGargaloText}>GARGALO</Text>
+                            </View>
+                          )}
+                        </View>
+
                         <Text style={[styles.materiaDetalhe, isSelected && { color: 'rgba(255,255,255,0.8)' }]}>
-                          Do {materia.semestre}º Semestre • {materia.cargaHoraria ? `${materia.cargaHoraria}h` : 'CH não informada'}
+                          Do {materia.semestre}º Semestre • {materia.cargaHoraria ? `${materia.cargaHoraria}h` : 'CH não informada'} • Tranca {qtdDependentes} matérias
                         </Text>
                       </View>
+                      
                       {isSelected ? (
                         <CheckCircle size={24} color="#FFF" />
                       ) : (
@@ -259,57 +272,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scrollView: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
-  
-  // --- ESTILOS RESPONSIVOS DA ÁREA DE AÇÃO ---
-  actionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginVertical: 20,
-    width: '100%',
-  },
-  actionContainerMobile: {
-    flexDirection: 'column', // Muda para empilhado no celular
-    justifyContent: 'center',
-    gap: 16, // Espaçamento entre Legenda e Botão no celular
-  },
-  spacerLeft: {
-    flex: 1, // Ocupa espaço fantasma na esquerda
-    minWidth: 150,
-  },
-  centerLegenda: {
-    flex: 2, // Toma conta do centro
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rightAction: {
-    flex: 1, // Ocupa espaço na direita
-    alignItems: 'flex-end', // Alinha o botão colado no canto direito
-    minWidth: 150,
-  },
-  rightActionMobile: {
-    alignItems: 'center', // No celular, centraliza o botão
-  },
-
-  inlinePlanButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.disponivel,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    gap: 8,
-    elevation: 3, 
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-  },
+  actionContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 20, width: '100%', paddingHorizontal: 8 },
+  actionContainerMobile: { flexDirection: 'column', justifyContent: 'center', gap: 16 },
+  spacerLeft: { flex: 1, minWidth: 150 },
+  centerLegenda: { flex: 2, alignItems: 'center', justifyContent: 'center' },
+  rightAction: { flex: 1, alignItems: 'flex-end', minWidth: 150 },
+  rightActionMobile: { alignItems: 'center' },
+  inlinePlanButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.disponivel, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, gap: 8, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2 },
   inlinePlanButtonText: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
   inlineBadge: { backgroundColor: '#EF4444', borderRadius: 12, minWidth: 24, height: 24, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, marginLeft: 4 },
   inlineBadgeText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
 
-  // Modal e restantes
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%', minHeight: '50%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
@@ -320,7 +293,13 @@ const styles = StyleSheet.create({
   sugestaoSubtitle: { fontSize: 13, color: colors.textMuted },
   materiaItem: { padding: 16, borderRadius: 12, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border, marginBottom: 10, flexDirection: 'row', alignItems: 'center' },
   materiaItemSelected: { backgroundColor: colors.cursando, borderColor: colors.cursando },
-  materiaNomeCarrinho: { fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 4 },
+  
+  // Estilos novos para o título e o selo de gargalo
+  nomeContainer: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 4, gap: 8 },
+  materiaNomeCarrinho: { fontSize: 15, fontWeight: '600', color: colors.text },
+  badgeGargalo: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(239, 68, 68, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, gap: 4 },
+  badgeGargaloText: { fontSize: 10, color: '#EF4444', fontWeight: 'bold' },
+  
   materiaDetalhe: { fontSize: 13, color: colors.textMuted },
   unselectedCircle: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.border },
   resumoContainer: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border, gap: 16 },
