@@ -22,14 +22,18 @@ export interface AtividadeItem {
   quantidadeOriginal?: number; // Para mostrar o valor antes da conversão
 }
 
-export type AvaliacaoTipo = 'P1' | 'P2' | 'P3' | 'EC' | 'AeS' | 'Sub' | 'Trabalho' | 'Outro';
+export type AvaliacaoTipo = 'Prova 1' | 'Prova 2' | 'Prova 3' | 'Extra Curricular' | 'Atividade em Sala' | 'Substitutiva' | 'Trabalho' | 'Outro';
 
 export interface Avaliacao {
   id: string;
   tipo: AvaliacaoTipo;
-  nota: number;
-  peso?: number; // Para ditar impacto da nota (ex: peso 1, peso 2). Padrão = 1.
+  nota?: number; // Para compatibilidade
+  peso?: number; // Para compatibilidade
   descricao?: string;
+  semestre?: string;
+  nomeProva?: string;
+  arquivoUri?: string;
+  arquivoNome?: string;
   dataCriacao: number;
 }
 

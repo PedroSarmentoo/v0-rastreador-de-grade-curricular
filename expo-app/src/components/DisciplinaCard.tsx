@@ -1,25 +1,22 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-// 1. Importamos os ícones do Lucide
-import { CheckSquare, PlaySquare, Square, Lock, GitBranch, ClipboardList, Paperclip } from 'lucide-react-native';
+import { CheckSquare, PlaySquare, Square, Lock, GitBranch, ClipboardList, BookOpen } from 'lucide-react-native';
 import { Disciplina } from '../types';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { AvaliacoesModal } from './modals/AvaliacoesModal';
-import { ArquivosDisciplinaModal } from './modals/ArquivosDisciplinaModal';
 
 interface Props {
   disciplina: Disciplina;
 }
 
 export function DisciplinaCard({ disciplina }: Props) {
-  const { toggleDisciplina, disciplinas, obterNotaMedia, arquivos } = useDisciplinas();
+  const { toggleDisciplina, disciplinas, avaliacoes } = useDisciplinas();
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalArquivosVisible, setModalArquivosVisible] = useState(false);
   const { id, nome, status, preRequisitos } = disciplina;
 
-  const media = obterNotaMedia(id);
-  const qtdArquivos = arquivos[id]?.length || 0;
+  // Calculamos quantas provas temos no banco
+  const qtdProvas = avaliacoes[id]?.length || 0;
 
   const getCardStyle = () => {
     switch (status) {
@@ -46,7 +43,6 @@ export function DisciplinaCard({ disciplina }: Props) {
     }
   };
 
-  // 2. Agora retornamos o componente do Lucide diretamente, em vez de um texto
   const getIconComponent = () => {
     switch (status) {
       case 'concluida':
@@ -87,7 +83,6 @@ export function DisciplinaCard({ disciplina }: Props) {
   const preReqNomes = getPreRequisitosNomes();
   const isDisabled = status === 'bloqueada';
   
-  // Extraímos o componente escolhido para usá-lo no JSX
   const StatusIcon = getIconComponent();
 
   return (
@@ -98,7 +93,6 @@ export function DisciplinaCard({ disciplina }: Props) {
       style={[styles.card, getCardStyle()]}
     >
       <View style={styles.header}>
-        {/* 3. Renderizamos o ícone do Lucide */}
         <StatusIcon size={22} color={getIconColor()} />
         <Text 
           style={[
@@ -114,7 +108,6 @@ export function DisciplinaCard({ disciplina }: Props) {
       
       {preReqNomes && (
         <View style={styles.preRequisitos}>
-          {/* 4. Ícone de ramificação atualizado */}
           <GitBranch size={12} color={colors.textMuted} />
           <Text style={styles.preRequisitosText} numberOfLines={1}>
             {preReqNomes}
@@ -125,7 +118,7 @@ export function DisciplinaCard({ disciplina }: Props) {
       <View style={styles.footerContainer}>
         <View style={styles.statusBadge}>
           <Text style={[styles.statusText, { color: getIconColor() }]}>
-            {status === 'concluida' ? 'ConcluÃda' : status === 'cursando' ? 'Cursando' : status === 'disponivel' ? 'DisponÃvel' : 'Bloqueada'}
+            {status === 'concluida' ? 'Concluída' : status === 'cursando' ? 'Cursando' : status === 'disponivel' ? 'Disponível' : 'Bloqueada'}
           </Text>
         </View>
 
@@ -133,28 +126,15 @@ export function DisciplinaCard({ disciplina }: Props) {
           <View style={styles.actionsContainer}>
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={() => setModalArquivosVisible(true)}
+              onPress={() => setModalVisible(true)}
             >
-              <Paperclip size={16} color={getIconColor()} />
-              {qtdArquivos > 0 && (
-                <View style={styles.badgeArquivos}>
-                  <Text style={styles.badgeArquivosText}>{qtdArquivos}</Text>
+              <BookOpen size={16} color={getIconColor()} />
+              {qtdProvas > 0 && (
+                <View style={styles.badgeProvas}>
+                  <Text style={styles.badgeProvasText}>{qtdProvas}</Text>
                 </View>
               )}
             </TouchableOpacity>
-
-            {(status === 'concluida' || status === 'cursando') && (
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={() => setModalVisible(true)}
-              >
-                {media ? (
-                  <Text style={[styles.mediaText, { color: getIconColor() }]}>{media}</Text>
-                ) : (
-                  <ClipboardList size={16} color={getIconColor()} />
-                )}
-              </TouchableOpacity>
-            )}
           </View>
         )}
       </View>
@@ -165,106 +145,23 @@ export function DisciplinaCard({ disciplina }: Props) {
         disciplinaNome={nome}
         onClose={() => setModalVisible(false)}
       />
-
-      <ArquivosDisciplinaModal
-        visible={modalArquivosVisible}
-        disciplinaId={id}
-        disciplinaNome={nome}
-        onClose={() => setModalArquivosVisible(false)}
-      />
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    margin: 6,
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    minHeight: 110,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginBottom: 8,
-  },
-  nome: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    lineHeight: 20,
-  },
-  nomeRiscado: {
-    textDecorationLine: 'line-through',
-    opacity: 0.8,
-  },
-  nomeBloqueado: {
-    opacity: 0.5,
-  },
-  preRequisitos: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 'auto',
-    marginBottom: 8,
-  },
-  preRequisitosText: {
-    flex: 1,
-    fontSize: 11,
-    color: colors.textMuted,
-  },
-  footerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginTop: 'auto',
-  },
-  statusBadge: {
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 6,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    backgroundColor: colors.surfaceHover,
-    minWidth: 32,
-    minHeight: 32,
-  },
-  badgeArquivos: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    width: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeArquivosText: {
-    color: colors.background,
-    fontSize: 9,
-    fontWeight: 'bold',
-  },
-  mediaText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-  }
+  card: { flex: 1, margin: 6, padding: 14, borderRadius: 12, borderWidth: 1, minHeight: 110 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
+  nome: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text, lineHeight: 20 },
+  nomeRiscado: { textDecorationLine: 'line-through', opacity: 0.8 },
+  nomeBloqueado: { opacity: 0.5 },
+  preRequisitos: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 'auto', marginBottom: 8 },
+  preRequisitosText: { flex: 1, fontSize: 11, color: colors.textMuted },
+  footerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto' },
+  statusBadge: {},
+  statusText: { fontSize: 11, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
+  actionsContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  actionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: colors.surfaceHover, minWidth: 32, minHeight: 32 },
+  badgeProvas: { position: 'absolute', top: -6, right: -6, backgroundColor: colors.primary, borderRadius: 10, width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
+  badgeProvasText: { color: colors.background, fontSize: 9, fontWeight: 'bold' }
 });
