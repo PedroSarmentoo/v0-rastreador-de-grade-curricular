@@ -173,7 +173,7 @@ export function SettingsScreen({ onNavigateToGrade }: SettingsScreenProps) {
         
         <View style={styles.aboutContainer}>
           <Text style={styles.aboutTitle}>Sobre o App</Text>
-          <Text style={styles.aboutText}>UniGrade v1.3.1</Text>
+          <Text style={styles.aboutText}>UniGrade v1.4.0</Text>
         </View>
       </ScrollView>
 
