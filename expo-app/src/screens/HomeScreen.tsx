@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ScrollView, StyleSheet, View, Text, TouchableOpacity, Modal, Alert, Platform } from 'react-native';
+import { ScrollView, StyleSheet, View, Text, TouchableOpacity, Modal, Alert, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BookOpen, X, CheckCircle, Info, Sparkles } from 'lucide-react-native';
 import { colors } from '../theme/colors';
@@ -12,6 +12,10 @@ import { Confetti } from '../components/Confetti';
 export function HomeScreen() {
   const { semestres, progressoPercentual, disciplinas, matricular } = useDisciplinas();
 
+  // Leitor de tamanho de tela para tornar o layout responsivo
+  const { width } = useWindowDimensions();
+  const isDesktop = width > 800; // Considera telas maiores que 800px como "Desktop"
+
   const [modalPlanejamentoVisible, setModalPlanejamentoVisible] = useState(false);
   const [materiasSelecionadas, setMateriasSelecionadas] = useState<string[]>([]);
 
@@ -19,33 +23,24 @@ export function HomeScreen() {
     return disciplinas.filter(d => d.status === 'disponivel');
   }, [disciplinas]);
 
-  // --- O CÉREBRO DA SUGESTÃO INTELIGENTE (VERSÃO 2.0) ---
   const sugerirGradeIdeal = () => {
-    // Função auxiliar que conta quantas matérias dependem de uma matéria específica
     const contarDependentes = (idMateria: string) => {
       return disciplinas.filter(d => d.preRequisitos.includes(idMateria)).length;
     };
 
-    // 1. Organiza as matérias usando os novos critérios
     const materiasOrdenadas = [...materiasDisponiveis].sort((a, b) => {
       const pesoA = contarDependentes(a.id);
       const pesoB = contarDependentes(b.id);
 
-      // CRITÉRIO 1: As que "travam" mais disciplinas (peso maior primeiro)
-      if (pesoB !== pesoA) {
-        return pesoB - pesoA;
-      }
-      
-      // CRITÉRIO 2: Desempate pelas mais antigas (semestre menor primeiro)
+      if (pesoB !== pesoA) return pesoB - pesoA;
       return a.semestre - b.semestre;
     });
 
     let horasAcumuladas = 0;
     const novaSelecao: string[] = [];
 
-    // CRITÉRIO 3: Respeitar a saúde mental (Limite Ideal de ~360h)
     for (const materia of materiasOrdenadas) {
-      const ch = materia.cargaHoraria || 60; // Se não tiver CH, assume 60h
+      const ch = materia.cargaHoraria || 60; 
       
       if (horasAcumuladas + ch <= 360) {
         novaSelecao.push(materia.id);
@@ -131,26 +126,42 @@ export function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <EstatisticasHeader />
-        <Legenda />
+        
+        {/* --- ÁREA DE AÇÃO TOTALMENTE RESPONSIVA --- */}
+        <View style={[styles.actionContainer, !isDesktop && styles.actionContainerMobile]}>
+          
+          {/* 1. Esquerda: Bloco invisível para dar equilíbrio (Só aparece no desktop) */}
+          {isDesktop && <View style={styles.spacerLeft} />}
+          
+          {/* 2. Centro: Legenda (Sempre centralizada) */}
+          <View style={styles.centerLegenda}>
+            <Legenda />
+          </View>
+          
+          {/* 3. Direita: Botão (No PC fica à direita, no Celular vai para o meio) */}
+          <View style={[styles.rightAction, !isDesktop && styles.rightActionMobile]}>
+            <TouchableOpacity 
+              style={styles.inlinePlanButton}
+              onPress={() => setModalPlanejamentoVisible(true)}
+              activeOpacity={0.8}
+            >
+              <BookOpen size={20} color="#FFF" />
+              <Text style={styles.inlinePlanButtonText}>Montar Semestre</Text>
+              
+              {materiasSelecionadas.length > 0 && (
+                <View style={styles.inlineBadge}>
+                  <Text style={styles.inlineBadgeText}>{materiasSelecionadas.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+        </View>
         
         {semestres.map((semestre) => (
           <SemestreSection key={semestre} semestre={semestre} />
         ))}
       </ScrollView>
-
-      {/* BOTÃO FLUTUANTE */}
-      <TouchableOpacity 
-        style={styles.floatingPlanButton}
-        onPress={() => setModalPlanejamentoVisible(true)}
-        activeOpacity={0.8}
-      >
-        <BookOpen size={24} color="#FFF" />
-        {materiasSelecionadas.length > 0 && (
-          <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>{materiasSelecionadas.length}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
 
       {/* --- MODAL DO SIMULADOR --- */}
       <Modal visible={modalPlanejamentoVisible} animationType="slide" transparent={true}>
@@ -175,7 +186,6 @@ export function HomeScreen() {
             ) : (
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
                 
-                {/* BOTÃO DE SUGESTÃO INTELIGENTE */}
                 <TouchableOpacity 
                   style={styles.sugestaoButton}
                   onPress={sugerirGradeIdeal}
@@ -184,6 +194,7 @@ export function HomeScreen() {
                   <Sparkles size={20} color="#F59E0B" />
                   <View>
                     <Text style={styles.sugestaoTitle}>Sugestão Inteligente</Text>
+                    <Text style={styles.sugestaoSubtitle}>Prioriza matérias-gargalo no limite ideal de horas</Text>
                   </View>
                 </TouchableOpacity>
 
@@ -215,7 +226,6 @@ export function HomeScreen() {
               </ScrollView>
             )}
 
-            {/* PAINEL INFERIOR COM TERMÔMETRO */}
             <View style={styles.resumoContainer}>
               <View style={styles.termometroContainer}>
                 <View style={styles.termometroTextos}>
@@ -248,10 +258,58 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scrollView: { flex: 1 },
-  content: { padding: 16, paddingBottom: 100 },
-  floatingPlanButton: { position: 'absolute', bottom: 30, right: 24, backgroundColor: colors.disponivel, width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4.65, zIndex: 10 },
-  badgeContainer: { position: 'absolute', top: -4, right: -4, backgroundColor: '#EF4444', minWidth: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.background, paddingHorizontal: 4 },
-  badgeText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
+  content: { padding: 16, paddingBottom: 40 },
+  
+  // --- ESTILOS RESPONSIVOS DA ÁREA DE AÇÃO ---
+  actionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: 20,
+    width: '100%',
+  },
+  actionContainerMobile: {
+    flexDirection: 'column', // Muda para empilhado no celular
+    justifyContent: 'center',
+    gap: 16, // Espaçamento entre Legenda e Botão no celular
+  },
+  spacerLeft: {
+    flex: 1, // Ocupa espaço fantasma na esquerda
+    minWidth: 150,
+  },
+  centerLegenda: {
+    flex: 2, // Toma conta do centro
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rightAction: {
+    flex: 1, // Ocupa espaço na direita
+    alignItems: 'flex-end', // Alinha o botão colado no canto direito
+    minWidth: 150,
+  },
+  rightActionMobile: {
+    alignItems: 'center', // No celular, centraliza o botão
+  },
+
+  inlinePlanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.disponivel,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+    elevation: 3, 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  inlinePlanButtonText: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
+  inlineBadge: { backgroundColor: '#EF4444', borderRadius: 12, minWidth: 24, height: 24, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, marginLeft: 4 },
+  inlineBadgeText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
+
+  // Modal e restantes
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%', minHeight: '50%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
