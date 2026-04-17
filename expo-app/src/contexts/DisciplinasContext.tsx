@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Disciplina, DisciplinaNode, StatusDisciplina, AtividadesComplementares, AvaliacoesPorDisciplina, Avaliacao, AvaliacaoTipo } from '../types';
+import { Disciplina, DisciplinaNode, StatusDisciplina, AtividadesComplementares, AvaliacoesPorDisciplina, Avaliacao, AvaliacaoTipo, Arquivo, ArquivosPorDisciplina } from '../types';
 
 // Importações das grades
 import { disciplinasIniciais } from '../data/disciplinas';
@@ -12,6 +12,7 @@ import { disciplinasMatematica } from '../data/disciplinasMatematica';
 const ACC_STORAGE_KEY = '@grade_curricular_acc_v2';
 const COURSE_NAME_KEY = '@grade_curricular_nome_curso';
 const AVALIACOES_KEY = '@grade_curricular_avaliacoes_v1';
+const ARQUIVOS_KEY = '@grade_curricular_arquivos_v1';
 
 const getStorageKeyPorCurso = (curso: string) => {
   if (curso === 'Engenharia de Sistemas') {
@@ -48,6 +49,9 @@ interface DisciplinasContextData {
   addAvaliacao: (disciplinaId: string, avaliacao: Omit<Avaliacao, 'id' | 'dataCriacao'>) => void;
   removeAvaliacao: (disciplinaId: string, avaliacaoId: string) => void;
   obterNotaMedia: (disciplinaId: string) => string | null;
+  arquivos: ArquivosPorDisciplina;
+  addArquivo: (disciplinaId: string, arquivo: Omit<Arquivo, 'id' | 'disciplinaId' | 'dataAdicao'>) => void;
+  removeArquivo: (disciplinaId: string, arquivoId: string) => void;
 }
 
 const DisciplinasContext = createContext<DisciplinasContextData | undefined>(undefined);
@@ -55,6 +59,7 @@ const DisciplinasContext = createContext<DisciplinasContextData | undefined>(und
 export function DisciplinasProvider({ children }: { children: ReactNode }) {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [avaliacoes, setAvaliacoes] = useState<AvaliacoesPorDisciplina>({});
+  const [arquivos, setArquivos] = useState<ArquivosPorDisciplina>({});
   const [nomeCurso, setNomeCursoState] = useState('Engenharia de Sistemas'); 
   const [atividades, setAtividades] = useState<AtividadesComplementares>({
     temAiex: false,
@@ -134,6 +139,11 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           setAvaliacoes(JSON.parse(avaliacoesValue));
         }
 
+        const arquivosValue = await AsyncStorage.getItem(ARQUIVOS_KEY);
+        if (arquivosValue !== null) {
+          setArquivos(JSON.parse(arquivosValue));
+        }
+
       } catch (e) {
         console.error('Erro ao carregar dados:', e);
       } finally {
@@ -157,13 +167,16 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           
           const avaliacoesValue = JSON.stringify(avaliacoes);
           await AsyncStorage.setItem(AVALIACOES_KEY, avaliacoesValue);
+
+          const arquivosValue = JSON.stringify(arquivos);
+          await AsyncStorage.setItem(ARQUIVOS_KEY, arquivosValue);
         } catch (e) {
           console.error('Erro ao salvar dados:', e);
         }
       }
     }
     salvarDados();
-  }, [disciplinas, atividades, avaliacoes, isLoading, nomeCurso]);
+  }, [disciplinas, atividades, avaliacoes, arquivos, isLoading, nomeCurso]);
 
   // TROCAR CURSO
   const handleSetNomeCurso = useCallback(async (novoCurso: string) => {
@@ -457,6 +470,38 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     return (somaNotas / somaPesos).toFixed(1);
   }, [avaliacoes]);
 
+  const addArquivo = useCallback((disciplinaId: string, arquivo: Omit<Arquivo, 'id' | 'disciplinaId' | 'dataAdicao'>) => {
+    setArquivos((prev) => {
+      const novoArquivo: Arquivo = {
+        ...arquivo,
+        id: Math.random().toString(36).substring(2, 9),
+        disciplinaId,
+        dataAdicao: Date.now()
+      };
+      
+      const atualizados = prev[disciplinaId] ? [...prev[disciplinaId]] : [];
+      atualizados.push(novoArquivo);
+      
+      return { ...prev, [disciplinaId]: atualizados };
+    });
+  }, []);
+
+  const removeArquivo = useCallback((disciplinaId: string, arquivoId: string) => {
+    setArquivos((prev) => {
+      if (!prev[disciplinaId]) return prev;
+      
+      const atualizados = prev[disciplinaId].filter(a => a.id !== arquivoId);
+      
+      if (atualizados.length === 0) {
+        const newState = { ...prev };
+        delete newState[disciplinaId];
+        return newState;
+      }
+      
+      return { ...prev, [disciplinaId]: atualizados };
+    });
+  }, []);
+
   return (
     <DisciplinasContext.Provider
       value={{
@@ -483,7 +528,10 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         avaliacoes,
         addAvaliacao,
         removeAvaliacao,
-        obterNotaMedia
+        obterNotaMedia,
+        arquivos,
+        addArquivo,
+        removeArquivo
       }}
     >
       {children}

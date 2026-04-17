@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
-import { UploadCloud, Share, Download, RefreshCw, Info } from 'lucide-react-native';
+import { UploadCloud, Share, Download, RefreshCw, Info, Files } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as XLSX from 'xlsx';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { colors } from '../theme/colors';
+import { BancoArquivosModal } from './modals/BancoArquivosModal';
 
 const MODELO_XLSX_DATA = [
   { id: 'mat1', nome: 'Matemática Básica', semestre: 1, preRequisitos: '' },
@@ -63,6 +64,7 @@ const exportarArquivoXlsx = async (dados: any[], nomeArquivo: string, mensagemSu
 
 export function MenuGrade() {
   const { disciplinas, importarGrade, resetarGrade } = useDisciplinas();
+  const [modalArquivosVisible, setModalArquivosVisible] = useState(false);
 
   const handleResetGrade = () => {
     const executarReset = () => {
@@ -198,6 +200,11 @@ export function MenuGrade() {
       <Text style={styles.title}>Opções da Grade Curricular</Text>
       <View style={styles.actions}>
         
+        <TouchableOpacity style={styles.buttonAction} onPress={() => setModalArquivosVisible(true)}>
+          <Files size={20} color={colors.primary} />
+          <Text style={styles.buttonText}>Banco de Arquivos</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.buttonAction} onPress={handleImportGrade}>
           <UploadCloud size={20} color={colors.disponivel} />
           <Text style={styles.buttonText}>Importar Grade</Text>

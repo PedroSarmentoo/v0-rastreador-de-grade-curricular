@@ -35,6 +35,18 @@ export interface Avaliacao {
 
 export type AvaliacoesPorDisciplina = Record<string, Avaliacao[]>;
 
+export interface Arquivo {
+  id: string;
+  disciplinaId: string;
+  nome: string;
+  uri: string;
+  tipo?: string;
+  tamanho?: number;
+  dataAdicao: number;
+}
+
+export type ArquivosPorDisciplina = Record<string, Arquivo[]>;
+
 export interface AtividadesComplementares {
   temAiex: boolean;
   listaAcc: AtividadeItem[];

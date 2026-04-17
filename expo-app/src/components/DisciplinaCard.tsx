@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-// 1. Importamos os Ãcones do Lucide (incluindo o GitBranch para os prÃ©-requisitos)
-import { CheckSquare, PlaySquare, Square, Lock, GitBranch, ClipboardList } from 'lucide-react-native';
+// 1. Importamos os ícones do Lucide
+import { CheckSquare, PlaySquare, Square, Lock, GitBranch, ClipboardList, Paperclip } from 'lucide-react-native';
 import { Disciplina } from '../types';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { AvaliacoesModal } from './modals/AvaliacoesModal';
+import { ArquivosDisciplinaModal } from './modals/ArquivosDisciplinaModal';
 
 interface Props {
   disciplina: Disciplina;
 }
 
 export function DisciplinaCard({ disciplina }: Props) {
-  const { toggleDisciplina, disciplinas, obterNotaMedia } = useDisciplinas();
+  const { toggleDisciplina, disciplinas, obterNotaMedia, arquivos } = useDisciplinas();
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalArquivosVisible, setModalArquivosVisible] = useState(false);
   const { id, nome, status, preRequisitos } = disciplina;
 
   const media = obterNotaMedia(id);
+  const qtdArquivos = arquivos[id]?.length || 0;
 
   const getCardStyle = () => {
     switch (status) {
@@ -126,17 +129,33 @@ export function DisciplinaCard({ disciplina }: Props) {
           </Text>
         </View>
 
-        {status !== 'bloqueada' && status !== 'disponivel' && (
-          <TouchableOpacity 
-            style={styles.avaliacoesButton}
-            onPress={() => setModalVisible(true)}
-          >
-            {media ? (
-              <Text style={[styles.mediaText, { color: getIconColor() }]}>{media}</Text>
-            ) : (
-              <ClipboardList size={16} color={getIconColor()} />
+        {status !== 'bloqueada' && (
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => setModalArquivosVisible(true)}
+            >
+              <Paperclip size={16} color={getIconColor()} />
+              {qtdArquivos > 0 && (
+                <View style={styles.badgeArquivos}>
+                  <Text style={styles.badgeArquivosText}>{qtdArquivos}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {(status === 'concluida' || status === 'cursando') && (
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => setModalVisible(true)}
+              >
+                {media ? (
+                  <Text style={[styles.mediaText, { color: getIconColor() }]}>{media}</Text>
+                ) : (
+                  <ClipboardList size={16} color={getIconColor()} />
+                )}
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -145,6 +164,13 @@ export function DisciplinaCard({ disciplina }: Props) {
         disciplinaId={id}
         disciplinaNome={nome}
         onClose={() => setModalVisible(false)}
+      />
+
+      <ArquivosDisciplinaModal
+        visible={modalArquivosVisible}
+        disciplinaId={id}
+        disciplinaNome={nome}
+        onClose={() => setModalArquivosVisible(false)}
       />
     </TouchableOpacity>
   );
@@ -205,14 +231,37 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  avaliacoesButton: {
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 4,
+    padding: 6,
     paddingHorizontal: 8,
     borderRadius: 8,
     backgroundColor: colors.surfaceHover,
+    minWidth: 32,
+    minHeight: 32,
+  },
+  badgeArquivos: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeArquivosText: {
+    color: colors.background,
+    fontSize: 9,
+    fontWeight: 'bold',
   },
   mediaText: {
     fontSize: 12,
