@@ -404,7 +404,7 @@ export function AtividadesScreen() {
                 />
                 <View style={styles.rowForm}>
                   <TextInput 
-                    style={[styles.input, { flex: 1 }]} 
+                    style={[styles.input, { flex: 1, marginBottom: 0 }]} 
                     placeholder="Horas (Ex: 80)" 
                     placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
@@ -422,7 +422,7 @@ export function AtividadesScreen() {
                       <Paperclip size={20} color={colors.text} />
                     )}
                     <Text style={[styles.fileBtnText, novaAiexDoc && { color: colors.concluida }]}>
-                       {novaAiexDoc ? 'Documento Anexo' : 'Anexar'}
+                       {novaAiexDoc ? 'Anexado' : 'Anexar'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -583,9 +583,27 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: colors.cursando, borderRadius: 4 },
   formCard: { backgroundColor: colors.surfaceLight, padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: colors.border },
   input: { backgroundColor: colors.background, color: colors.text, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 8 },
-  rowForm: { flexDirection: 'row', gap: 8, marginBottom: 8 },
-  fileBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
-  fileBtnText: { color: colors.text, fontSize: 13, fontWeight: '500' },
+  
+  // --- A MÁGICA DA RESPONSIVIDADE AQUI ---
+  rowForm: { 
+    flexDirection: 'row', 
+    alignItems: 'stretch', 
+    gap: 8, 
+    marginBottom: 8 
+  },
+fileBtn: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 6, 
+    paddingHorizontal: 16, 
+    borderRadius: 8, 
+    borderWidth: 1, 
+    borderColor: colors.border, 
+    backgroundColor: colors.background 
+  },
+  fileBtnText: { color: colors.text, fontSize: 13, fontWeight: '500' }, // <--- ADICIONE ESTA LINHA AQUI!
+  
   listContainer: { gap: 8 },
   emptyText: { color: colors.textMuted, fontSize: 13, textAlign: 'center', paddingVertical: 10 },
   atividadeItemCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceLight, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.border },

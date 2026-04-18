@@ -116,7 +116,6 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           const dadosSalvos = JSON.parse(jsonValue);
           setDisciplinas(atualizarTodasDisciplinas(dadosSalvos));
         } else {
-          // 2. ATUALIZADO: Lógica de carga inicial com Engenharia Civil
           const gradeBase = 
             cursoAtual === 'Sistemas de Informação' ? disciplinasSI : 
             cursoAtual === 'Engenharia Civil' ? disciplinasCivil : 
@@ -180,7 +179,6 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
       if (jsonValue !== null) {
         setDisciplinas(atualizarTodasDisciplinas(JSON.parse(jsonValue)));
       } else {
-        // 3. ATUALIZADO: Lógica de troca de curso com Engenharia Civil
         const gradeBase = 
           novoCurso === 'Sistemas de Informação' ? disciplinasSI : 
           novoCurso === 'Engenharia Civil' ? disciplinasCivil : 
@@ -236,6 +234,16 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
     });
   }, [atualizarTodasDisciplinas]);
 
+  // ---> AQUI ESTÁ A FUNÇÃO MATRICULAR QUE ESTAVA FALTANDO <---
+  const matricular = useCallback((ids: string[]) => {
+    setDisciplinas((prev) => {
+      const novaLista = prev.map((d) =>
+        ids.includes(d.id) ? { ...d, status: 'cursando' as StatusDisciplina } : d
+      );
+      return atualizarTodasDisciplinas(novaLista);
+    });
+  }, [atualizarTodasDisciplinas]);
+
   const importarGrade = useCallback((novaGrade: Partial<Disciplina>[]) => {
     try {
       if (!Array.isArray(novaGrade)) throw new Error('Grade deve ser um array');
@@ -263,11 +271,10 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
 
   // RESETAR GRADE
   const resetarGrade = useCallback(() => {
-    // 4. ATUALIZADO: Lógica de reset com Engenharia Civil
     const gradeBase = 
           nomeCurso === 'Sistemas de Informação' ? disciplinasSI : 
           nomeCurso === 'Engenharia Civil' ? disciplinasCivil : 
-          nomeCurso === 'Engenharia Elétrica' ? disciplinasEletrica : // <-- Adicione esta linha
+          nomeCurso === 'Engenharia Elétrica' ? disciplinasEletrica : 
           nomeCurso === 'Matemática' ? disciplinasMatematica : 
       disciplinasIniciais;
 
@@ -506,6 +513,8 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         avaliacoes,
         addAvaliacao,
         removeAvaliacao,
+        obterNotaMedia,
+        matricular,
         editAvaliacao,
         obterNotaMedia,
         updateDisciplinaData

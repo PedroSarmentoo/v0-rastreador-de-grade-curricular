@@ -16,7 +16,6 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* O Confetti só dispara quando você atinge 100% do curso! */}
       <Confetti isActive={progressoPercentual === 100} />
       
       <ScrollView 
@@ -37,7 +36,31 @@ export function HomeScreen() {
 
         <Legenda />
         
-        {/* Renderiza cada semestre dinamicamente */}
+        <View style={[styles.actionContainer, !isDesktop && styles.actionContainerMobile]}>
+          {isDesktop && <View style={styles.spacerLeft} />}
+          
+          <View style={styles.centerLegenda}>
+            <Legenda />
+          </View>
+          
+          <View style={[styles.rightAction, !isDesktop && styles.rightActionMobile]}>
+            <TouchableOpacity 
+              style={styles.inlinePlanButton}
+              onPress={() => setModalPlanejamentoVisible(true)}
+              activeOpacity={0.8}
+            >
+              <BookOpen size={20} color="#FFF" />
+              <Text style={styles.inlinePlanButtonText}>Montar Semestre</Text>
+              
+              {materiasSelecionadas.length > 0 && (
+                <View style={styles.inlineBadge}>
+                  <Text style={styles.inlineBadgeText}>{materiasSelecionadas.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+        
         {semestres.map((semestre) => (
           <SemestreSection key={semestre} semestre={semestre} />
         ))}
