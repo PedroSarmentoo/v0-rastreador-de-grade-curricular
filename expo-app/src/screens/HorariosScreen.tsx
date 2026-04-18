@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   CalendarDays, MapPin, Plus, X, Trash2, BookOpen, Edit2, Clock, 
-  PartyPopper, ChevronLeft, ChevronRight, ClipboardList, Target, Mic, FileText
+  PartyPopper, ChevronLeft, ChevronRight, ClipboardList, Target, Mic, FileText, AlertCircle
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
@@ -56,41 +56,35 @@ const timeToMinutes = (timeStr: string) => {
 export function HorariosScreen() {
   const { disciplinas } = useDisciplinas();
   
-  // Estados de Dados
   const [aulas, setAulas] = useState<AulaAgendada[]>([]);
   const [lembretes, setLembretes] = useState<Lembrete[]>([]);
   
-  // Estados do Modal
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<'aula' | 'lembrete'>('aula');
   const [editandoAulaId, setEditandoAulaId] = useState<string | null>(null);
 
-  // Navegação de Tempo
   const [now, setNow] = useState(new Date());
   const [weekOffset, setWeekOffset] = useState(0);
 
-  // Formulário AULA
   const [formDisciplinaId, setFormDisciplinaId] = useState('');
   const [formDiaSemana, setFormDiaSemana] = useState(0);
   const [formInicio, setFormInicio] = useState('');
   const [formFim, setFormFim] = useState('');
   const [formLocal, setFormLocal] = useState('');
 
-  // Formulário LEMBRETE
   const [formLembreteTitulo, setFormLembreteTitulo] = useState('');
   const [formLembreteData, setFormLembreteData] = useState('');
   const [formLembreteCategoria, setFormLembreteCategoria] = useState<CategoriaLembrete>('Prova');
   const [formLembreteDescricao, setFormLembreteDescricao] = useState('');
 
+  // Só matérias em curso
   const materiasCursando = useMemo(() => disciplinas.filter(d => d.status === 'cursando'), [disciplinas]);
 
-  // Relógio
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // --- CARREGAR / SALVAR DADOS ---
   useEffect(() => {
     async function carregar() {
       try {
@@ -106,7 +100,6 @@ export function HorariosScreen() {
   useEffect(() => { AsyncStorage.setItem(STORAGE_KEY_AULAS, JSON.stringify(aulas)).catch(console.error); }, [aulas]);
   useEffect(() => { AsyncStorage.setItem(STORAGE_KEY_LEMBRETES, JSON.stringify(lembretes)).catch(console.error); }, [lembretes]);
 
-  // --- INTELIGÊNCIA DO CALENDÁRIO ---
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const jsDay = now.getDay(); 
   const currentDayIndex = jsDay === 0 ? -1 : jsDay - 1; 
@@ -143,12 +136,14 @@ export function HorariosScreen() {
     return dias;
   }, [now, weekOffset, currentDayIndex]);
 
-  // --- FUNÇÕES DE NAVEGAÇÃO E MODAL ---
   const getNomeDisciplina = (id: string) => disciplinas.find(d => d.id === id)?.nome || 'Materia';
 
   const abrirModalNovaAula = () => {
     if (materiasCursando.length === 0) {
-      Alert.alert("Aviso", "Inicie o semestre primeiro na aba Grade!");
+      Alert.alert(
+        "Ação Bloqueada", 
+        "Você precisa ter pelo menos uma disciplina 'Em curso' na aba Grade para poder adicioná-la à agenda."
+      );
       return;
     }
     setModalMode('aula');
@@ -170,7 +165,6 @@ export function HorariosScreen() {
     setModalVisible(true);
   };
 
-  // --- FUNÇÕES DE AULA ---
   const handleSalvarAula = () => {
     if (!formInicio.includes(':') || !formFim.includes(':')) {
       return Alert.alert('Erro', 'Use o formato HH:MM (Ex: 07:10)');
@@ -204,7 +198,6 @@ export function HorariosScreen() {
     }
   };
 
-  // --- FUNÇÕES DE LEMBRETE ---
   const handleSalvarLembrete = () => {
     if (!formLembreteTitulo || !formLembreteData.includes('-')) {
       return Alert.alert('Erro', 'Preencha o título e a data no formato AAAA-MM-DD.');
@@ -245,7 +238,6 @@ export function HorariosScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       
-      {/* --- CABEÇALHO --- */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
           <CalendarDays size={28} color={colors.disponivel} />
@@ -270,6 +262,16 @@ export function HorariosScreen() {
         </View>
       </View>
 
+      {/* --- NOVO: BANNER DE AVISO DE SEMESTRE VAZIO --- */}
+      {materiasCursando.length === 0 && (
+        <View style={styles.avisoBanner}>
+          <AlertCircle size={20} color="#F59E0B" />
+          <Text style={styles.avisoText}>
+            Para montar sua agenda, primeiro vá na aba Grade e coloque as disciplinas que voce está fazendo como "cursando".
+          </Text>
+        </View>
+      )}
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {diasDaSemanaVisualizada.map((infoDia, index) => {
           
@@ -290,7 +292,6 @@ export function HorariosScreen() {
                 </Text>
               </View>
 
-              {/* RENDERIZA OS LEMBRETES DO DIA */}
               {lembretesDoDia.map(lembrete => {
                 const catInfo = CATEGORIAS.find(c => c.label === lembrete.categoria);
                 return (
@@ -317,7 +318,6 @@ export function HorariosScreen() {
                 );
               })}
 
-              {/* RENDERIZA FERIADO OU AULAS DO DIA */}
               {infoDia.feriado ? (
                 <View style={styles.feriadoCard}>
                   <PartyPopper size={32} color="#F59E0B" />
@@ -361,7 +361,6 @@ export function HorariosScreen() {
                           <Text style={styles.aulaLocal}>{aula.local}</Text>
                         </View>
 
-                        {/* --- LEGENDA ADICIONADA AQUI --- */}
                         <Text style={styles.hintText}>👆 Toque aqui para adicionar um lembrete</Text>
                       </View>
 
@@ -382,7 +381,12 @@ export function HorariosScreen() {
         })}
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} activeOpacity={0.8} onPress={abrirModalNovaAula}>
+      {/* Ao clicar no botão, se estiver vazio, agora ele bloqueia com um alerta amigável */}
+      <TouchableOpacity 
+        style={[styles.fab, materiasCursando.length === 0 && { backgroundColor: colors.textMuted }]} 
+        activeOpacity={0.8} 
+        onPress={abrirModalNovaAula}
+      >
         <Plus size={24} color="#FFF" />
       </TouchableOpacity>
 
@@ -491,6 +495,10 @@ const styles = StyleSheet.create({
   navText: { color: colors.text, fontSize: 15, fontWeight: '600' },
   navSubText: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
   
+  // --- BANNER DE AVISO ---
+  avisoBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: 14, marginHorizontal: 16, marginTop: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.3)', gap: 12 },
+  avisoText: { flex: 1, color: '#F59E0B', fontSize: 13, fontWeight: '600', lineHeight: 20 },
+
   content: { padding: 16, paddingBottom: 100 },
   daySection: { marginBottom: 28 },
   dayHeader: { borderLeftWidth: 4, borderLeftColor: colors.disponivel, paddingLeft: 12, marginBottom: 12 },
@@ -522,8 +530,6 @@ const styles = StyleSheet.create({
   aulaNome: { fontSize: 16, fontWeight: '800', marginBottom: 8, color: colors.text },
   aulaDetalhesRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   aulaLocal: { color: colors.textMuted, fontSize: 13 },
-  
-  // --- Estilo da Nova Legenda ---
   hintText: { fontSize: 11, color: colors.textMuted, fontStyle: 'italic', marginTop: 6, opacity: 0.8 },
 
   actionButtons: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8 },
