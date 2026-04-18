@@ -4,56 +4,61 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 
-// Importei o ícone CalendarDays para a nova aba
-import { GraduationCap, FileText, Settings, CalendarDays } from 'lucide-react-native';
+import { GraduationCap, FileText, Settings, CalendarDays, Home } from 'lucide-react-native';
 
 import { DisciplinasProvider } from './src/contexts/DisciplinasContext';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { AtividadesScreen } from './src/screens/AtividadesScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
-import { HorariosScreen } from './src/screens/HorariosScreen'; // <-- IMPORTAÇÃO DA NOVA TELA
+import { HorariosScreen } from './src/screens/HorariosScreen';
+import { DashboardScreen } from './src/screens/DashboardScreen';
 import { colors } from './src/theme/colors';
 
 import { Analytics } from '@vercel/analytics/react';
 
 function MainNavigator() {
-  // Adicionei 'horarios' nas opções de abas permitidas
-  const [activeTab, setActiveTab] = useState<'grade' | 'horarios' | 'atividades' | 'settings'>('grade');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'grade' | 'horarios' | 'atividades' | 'settings'>('dashboard');
   const insets = useSafeAreaInsets(); 
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
+        {activeTab === 'dashboard' && <DashboardScreen onChangeTab={setActiveTab} />}
         {activeTab === 'grade' && <HomeScreen />}
-        
-        {/* Renderiza a tela de Horários quando a aba estiver ativa */}
         {activeTab === 'horarios' && <HorariosScreen />}
-        
         {activeTab === 'atividades' && <AtividadesScreen />}
         {activeTab === 'settings' && <SettingsScreen onNavigateToGrade={() => setActiveTab('grade')} />}
       </View>
 
       <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        
         <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('grade')} activeOpacity={0.7}>
           <GraduationCap size={24} color={activeTab === 'grade' ? colors.disponivel : colors.textMuted} />
           <Text style={[styles.tabLabel, activeTab === 'grade' && styles.tabLabelActive]}>Grade</Text>
         </TouchableOpacity>
 
-        {/* --- NOVO BOTÃO DA ABA DE HORÁRIOS --- */}
         <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('horarios')} activeOpacity={0.7}>
           <CalendarDays size={24} color={activeTab === 'horarios' ? colors.disponivel : colors.textMuted} />
-          <Text style={[styles.tabLabel, activeTab === 'horarios' && styles.tabLabelActive]}>Horários</Text>
+          <Text style={[styles.tabLabel, activeTab === 'horarios' && styles.tabLabelActive]}>Agenda</Text>
+        </TouchableOpacity>
+
+        {/* --- INÍCIO NO CENTRO --- */}
+        <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('dashboard')} activeOpacity={0.7}>
+          <Home size={24} color={activeTab === 'dashboard' ? colors.disponivel : colors.textMuted} />
+          <Text style={[styles.tabLabel, activeTab === 'dashboard' && styles.tabLabelActive]}>Início</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('atividades')} activeOpacity={0.7}>
           <FileText size={24} color={activeTab === 'atividades' ? colors.disponivel : colors.textMuted} />
-          <Text style={[styles.tabLabel, activeTab === 'atividades' && styles.tabLabelActive]}>Atividades</Text>
+          <Text style={[styles.tabLabel, activeTab === 'atividades' && styles.tabLabelActive]}>ACC</Text>
         </TouchableOpacity>
 
+        {/* --- CONFIGURAÇÕES DE VOLTA --- */}
         <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('settings')} activeOpacity={0.7}>
           <Settings size={24} color={activeTab === 'settings' ? colors.disponivel : colors.textMuted} />
           <Text style={[styles.tabLabel, activeTab === 'settings' && styles.tabLabelActive]}>Config.</Text>
         </TouchableOpacity>
+
       </View>
     </View>
   );
