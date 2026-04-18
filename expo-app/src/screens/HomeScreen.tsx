@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View, TouchableOpacity, Text } from 'react-native';
+import { ScrollView, StyleSheet, View, TouchableOpacity, Text, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BarChart2 } from 'lucide-react-native';
+import { BarChart2, BookOpen } from 'lucide-react-native'; // <-- Adicionado o BookOpen
 import { DashboardEstatisticasModal } from '../components/modals/DashboardEstatisticasModal';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
@@ -11,8 +11,15 @@ import { SemestreSection } from '../components/SemestreSection';
 import { Confetti } from '../components/Confetti';
 
 export function HomeScreen() {
-  const { semestres, progressoPercentual } = useDisciplinas();
+  const { semestres, progressoPercentual, disciplinas } = useDisciplinas(); // <-- Puxei disciplinas para contar as selecionadas
+  
+  // Estados dos Modais
   const [showDashboard, setShowDashboard] = useState(false);
+  const [modalPlanejamentoVisible, setModalPlanejamentoVisible] = useState(false);
+
+  // Responsividade
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -34,7 +41,7 @@ export function HomeScreen() {
           <Text style={styles.dashboardBtnText}>Análise de Desempenho do Curso</Text>
         </TouchableOpacity>
 
-        <Legenda />
+        {/* Removi a Legenda duplicada que estava aqui em cima solta */}
         
         <View style={[styles.actionContainer, !isDesktop && styles.actionContainerMobile]}>
           {isDesktop && <View style={styles.spacerLeft} />}
@@ -44,20 +51,6 @@ export function HomeScreen() {
           </View>
           
           <View style={[styles.rightAction, !isDesktop && styles.rightActionMobile]}>
-            <TouchableOpacity 
-              style={styles.inlinePlanButton}
-              onPress={() => setModalPlanejamentoVisible(true)}
-              activeOpacity={0.8}
-            >
-              <BookOpen size={20} color="#FFF" />
-              <Text style={styles.inlinePlanButtonText}>Montar Semestre</Text>
-              
-              {materiasSelecionadas.length > 0 && (
-                <View style={styles.inlineBadge}>
-                  <Text style={styles.inlineBadgeText}>{materiasSelecionadas.length}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
           </View>
         </View>
         
@@ -74,6 +67,7 @@ export function HomeScreen() {
   );
 }
 
+// --- ESTILOS CORRIGIDOS E ADICIONADOS ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -87,7 +81,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   dashboardBtn: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary, // Ajuste para a cor principal do seu tema se necessário
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -105,5 +99,61 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontWeight: 'bold',
     fontSize: 15,
-  }
+  },
+  
+  // Estilos da barra de ações (Legenda + Botão Montar Semestre)
+  actionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  actionContainerMobile: {
+    flexDirection: 'column-reverse', // No celular, o botão fica em cima e a legenda embaixo
+    gap: 16,
+  },
+  spacerLeft: {
+    flex: 1,
+  },
+  centerLegenda: {
+    flex: 2,
+    alignItems: 'center',
+  },
+  rightAction: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  rightActionMobile: {
+    alignItems: 'stretch',
+    width: '100%',
+  },
+  inlinePlanButton: {
+    backgroundColor: colors.disponivel,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  inlinePlanButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  inlineBadge: {
+    backgroundColor: '#EF4444', // Vermelho para chamar atenção
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  inlineBadgeText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '900',
+  },
 });
