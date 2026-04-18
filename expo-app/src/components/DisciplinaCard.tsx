@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, StyleSheet } from 'react-native';
 import { CheckSquare, PlaySquare, Square, Lock, GitBranch, ClipboardList, BookOpen } from 'lucide-react-native';
 import { Disciplina } from '../types';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { AvaliacoesModal } from './modals/AvaliacoesModal';
+import { AproveitamentoModal } from './modals/AproveitamentoModal';
+import { GraduationCap } from 'lucide-react-native';
 
 interface Props {
   disciplina: Disciplina;
@@ -13,7 +15,8 @@ interface Props {
 export function DisciplinaCard({ disciplina }: Props) {
   const { toggleDisciplina, disciplinas, avaliacoes } = useDisciplinas();
   const [modalVisible, setModalVisible] = useState(false);
-  const { id, nome, status, preRequisitos } = disciplina;
+  const [aproveitamentoVisible, setAproveitamentoVisible] = useState(false);
+  const { id, nome, status, preRequisitos, notaFinal, reprovacoes } = disciplina;
 
   // Calculamos quantas provas temos no banco
   const qtdProvas = avaliacoes[id]?.length || 0;
@@ -86,13 +89,17 @@ export function DisciplinaCard({ disciplina }: Props) {
   const StatusIcon = getIconComponent();
 
   return (
-    <TouchableOpacity
-      onPress={() => toggleDisciplina(id)}
-      disabled={isDisabled}
-      activeOpacity={0.7}
-      style={[styles.card, getCardStyle()]}
-    >
-      <View style={styles.header}>
+    <>
+      <Pressable
+        onPress={() => toggleDisciplina(id)}
+        disabled={isDisabled}
+        style={({ pressed }) => [
+          styles.card, 
+          getCardStyle(),
+          pressed && !isDisabled && { opacity: 0.7 }
+        ]}
+      >
+        <View style={styles.header}>
         <StatusIcon size={22} color={getIconColor()} />
         <Text 
           style={[
@@ -126,7 +133,25 @@ export function DisciplinaCard({ disciplina }: Props) {
           <View style={styles.actionsContainer}>
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={() => setModalVisible(true)}
+              onPress={(e) => {
+                e.stopPropagation();
+                setAproveitamentoVisible(true);
+              }}
+            >
+              <GraduationCap size={16} color={getIconColor()} />
+              {((reprovacoes && reprovacoes.length > 0) || notaFinal !== undefined) && (
+                <View style={styles.badgeAproveitamento}>
+                  <CheckSquare size={10} color={colors.background} />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                setModalVisible(true);
+              }}
             >
               <BookOpen size={16} color={getIconColor()} />
               {qtdProvas > 0 && (
@@ -138,6 +163,7 @@ export function DisciplinaCard({ disciplina }: Props) {
           </View>
         )}
       </View>
+      </Pressable>
 
       <AvaliacoesModal
         visible={modalVisible}
@@ -145,7 +171,13 @@ export function DisciplinaCard({ disciplina }: Props) {
         disciplinaNome={nome}
         onClose={() => setModalVisible(false)}
       />
-    </TouchableOpacity>
+
+      <AproveitamentoModal
+        visible={aproveitamentoVisible}
+        disciplina={disciplina}
+        onClose={() => setAproveitamentoVisible(false)}
+      />
+    </>
   );
 }
 
@@ -163,5 +195,6 @@ const styles = StyleSheet.create({
   actionsContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   actionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: colors.surfaceHover, minWidth: 32, minHeight: 32 },
   badgeProvas: { position: 'absolute', top: -6, right: -6, backgroundColor: colors.primary, borderRadius: 10, width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
+  badgeAproveitamento: { position: 'absolute', top: -4, right: -4, backgroundColor: colors.primary, borderRadius: 8, padding: 2 },
   badgeProvasText: { color: colors.background, fontSize: 9, fontWeight: 'bold' }
 });
