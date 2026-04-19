@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View, TouchableOpacity, Text, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BarChart2, BookOpen } from 'lucide-react-native'; // <-- Adicionado o BookOpen
-import { DashboardEstatisticasModal } from '../components/modals/DashboardEstatisticasModal';
+import { BookOpen } from 'lucide-react-native'; // <-- Adicionado o BookOpen
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { EstatisticasHeader } from '../components/EstatisticasHeader';
@@ -14,7 +13,6 @@ export function HomeScreen() {
   const { semestres, progressoPercentual, disciplinas } = useDisciplinas(); // <-- Puxei disciplinas para contar as selecionadas
   
   // Estados dos Modais
-  const [showDashboard, setShowDashboard] = useState(false);
   const [modalPlanejamentoVisible, setModalPlanejamentoVisible] = useState(false);
 
   // Responsividade
@@ -31,15 +29,6 @@ export function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <EstatisticasHeader />
-
-        <TouchableOpacity 
-          style={styles.dashboardBtn} 
-          onPress={() => setShowDashboard(true)}
-          activeOpacity={0.8}
-        >
-          <BarChart2 size={20} color={colors.background} />
-          <Text style={styles.dashboardBtnText}>Análise de Desempenho do Curso</Text>
-        </TouchableOpacity>
 
         {/* Removi a Legenda duplicada que estava aqui em cima solta */}
         
@@ -58,11 +47,6 @@ export function HomeScreen() {
           <SemestreSection key={semestre} semestre={semestre} />
         ))}
       </ScrollView>
-
-      <DashboardEstatisticasModal 
-        visible={showDashboard} 
-        onClose={() => setShowDashboard(false)} 
-      />
     </SafeAreaView>
   );
 }
@@ -79,26 +63,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 40,
-  },
-  dashboardBtn: {
-    backgroundColor: colors.primary, // Ajuste para a cor principal do seu tema se necessário
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    gap: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  dashboardBtnText: {
-    color: colors.background,
-    fontWeight: 'bold',
-    fontSize: 15,
   },
   
   // Estilos da barra de ações (Legenda + Botão Montar Semestre)

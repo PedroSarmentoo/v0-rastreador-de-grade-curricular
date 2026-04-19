@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Target, Clock, ChevronRight, TrendingUp, MapPin, CalendarDays } from 'lucide-react-native';
+import { Target, Clock, ChevronRight, TrendingUp, MapPin, CalendarDays, BarChart2 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
+import { DashboardEstatisticasModal } from '../components/modals/DashboardEstatisticasModal';
 
 const STORAGE_KEY_LEMBRETES = '@meus_lembretes_v1';
 const STORAGE_KEY_AULAS = '@meus_horarios_v1';
@@ -13,6 +14,7 @@ export function DashboardScreen({ onChangeTab }: { onChangeTab: (tab: any) => vo
   const { disciplinas, atividades } = useDisciplinas();
   const [proximosLembretes, setProximosLembretes] = useState<any[]>([]);
   const [aulasHoje, setAulasHoje] = useState<any[]>([]);
+  const [showDashboard, setShowDashboard] = useState(false);
 
   // Inteligência do Dia Atual
   const now = new Date();
@@ -98,6 +100,15 @@ export function DashboardScreen({ onChangeTab }: { onChangeTab: (tab: any) => vo
 
         </View>
 
+        <TouchableOpacity 
+          style={styles.dashboardBtn} 
+          onPress={() => setShowDashboard(true)}
+          activeOpacity={0.8}
+        >
+          <BarChart2 size={20} color={colors.background} />
+          <Text style={styles.dashboardBtnText}>Análise de Desempenho do Curso</Text>
+        </TouchableOpacity>
+
         {/* --- AULAS DE HOJE --- */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Aulas de Hoje</Text>
@@ -168,6 +179,11 @@ export function DashboardScreen({ onChangeTab }: { onChangeTab: (tab: any) => vo
         )}
 
       </ScrollView>
+
+      <DashboardEstatisticasModal 
+        visible={showDashboard} 
+        onClose={() => setShowDashboard(false)} 
+      />
     </SafeAreaView>
   );
 }
@@ -180,6 +196,27 @@ const styles = StyleSheet.create({
   
   content: { padding: 16, paddingBottom: 100 },
   
+  dashboardBtn: {
+    backgroundColor: colors.primary, 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 16,
+    gap: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  dashboardBtnText: {
+    color: colors.background,
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 0, marginTop: 0 },
   seeAllText: { fontSize: 14, color: colors.disponivel, fontWeight: '600' },
