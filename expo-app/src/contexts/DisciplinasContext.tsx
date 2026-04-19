@@ -40,6 +40,7 @@ interface DisciplinasContextData {
   disciplinasDisponiveis: number;
   disciplinasBloqueadas: number;
   getDisciplinasPorSemestre: (semestre: number) => Disciplina[];
+  matricular: (ids: string[]) => void;
   semestres: number[];
   isLoading: boolean;
   importarGrade: (novaGrade: Disciplina[]) => void;
@@ -516,7 +517,6 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
         obterNotaMedia,
         matricular,
         editAvaliacao,
-        obterNotaMedia,
         updateDisciplinaData
       }}
     >

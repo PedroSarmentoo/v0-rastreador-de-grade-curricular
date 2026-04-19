@@ -15,6 +15,7 @@ export interface Disciplina {
   status: StatusDisciplina;
   notaFinal?: number;
   reprovacoes?: Reprovacao[];
+  cargaHoraria?: number;
 }
 
 export interface DisciplinaNode extends Disciplina {
