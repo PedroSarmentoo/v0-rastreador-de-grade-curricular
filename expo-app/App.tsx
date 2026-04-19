@@ -14,7 +14,16 @@ import { HorariosScreen } from './src/screens/HorariosScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { colors } from './src/theme/colors';
 
+import { Platform } from 'react-native';
 import { Analytics } from '@vercel/analytics/react';
+
+// Renderizando de forma segura a Analytics apenas se estiver rodando na web
+const SafeAnalytics = () => {
+  if (Platform.OS === 'web') {
+    return <Analytics />;
+  }
+  return null;
+};
 
 function MainNavigator() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'grade' | 'horarios' | 'atividades' | 'settings'>('dashboard');
@@ -71,7 +80,7 @@ export default function App() {
       <DisciplinasProvider>
         <MainNavigator />
       </DisciplinasProvider>
-      <Analytics />
+      <SafeAnalytics />
     </SafeAreaProvider>
   );
 }
