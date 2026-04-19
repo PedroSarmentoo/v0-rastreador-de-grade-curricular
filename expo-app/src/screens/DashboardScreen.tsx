@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Target, Clock, ChevronRight, TrendingUp, MapPin, CalendarDays, BarChart2 } from 'lucide-react-native';
+import { Target, Clock, ChevronRight, TrendingUp, MapPin, CalendarDays, Award, PieChart, Activity, AlertTriangle, TrendingDown, Frown } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
-import { DashboardEstatisticasModal } from '../components/modals/DashboardEstatisticasModal';
+import { BarChart, ProgressChart } from 'react-native-chart-kit';
 
 const STORAGE_KEY_LEMBRETES = '@meus_lembretes_v1';
 const STORAGE_KEY_AULAS = '@meus_horarios_v1';
+const screenWidth = Dimensions.get('window').width;
 
 export function DashboardScreen({ onChangeTab }: { onChangeTab: (tab: any) => void }) {
   const { disciplinas, atividades } = useDisciplinas();
   const [proximosLembretes, setProximosLembretes] = useState<any[]>([]);
   const [aulasHoje, setAulasHoje] = useState<any[]>([]);
-  const [showDashboard, setShowDashboard] = useState(false);
 
   // Inteligência do Dia Atual
   const now = new Date();
@@ -30,6 +30,84 @@ export function DashboardScreen({ onChangeTab }: { onChangeTab: (tab: any) => vo
   const horasAcc = (atividades.listaAcc || []).reduce((acc, item) => acc + item.horas, 0);
 
   const getNomeDisciplina = (id: string) => disciplinas.find(d => d.id === id)?.nome || 'Materia';
+
+  const stats = useMemo(() => {
+    let notaSum = 0;
+    let countConcluidas = 0;
+    let reprovNota = 0;
+    let reprovFalta = 0;
+    let reprovAmbos = 0;
+    
+    // Ranges for Histogram
+    let range0to49 = 0;
+    let range50to69 = 0;
+    let range70to89 = 0;
+    let range90to100 = 0;
+
+    const notasList: {nome: string; nota: number}[] = [];
+
+    disciplinas.forEach(d => {
+      if (d.status === 'concluida') countConcluidas++;
+
+      if (d.notaFinal !== undefined) {
+        notasList.push({ nome: d.nome, nota: d.notaFinal });
+        notaSum += d.notaFinal;
+        
+        if (d.notaFinal < 50) range0to49++;
+        else if (d.notaFinal < 70) range50to69++;
+        else if (d.notaFinal < 90) range70to89++;
+        else range90to100++;
+      }
+
+      if (d.reprovacoes) {
+        d.reprovacoes.forEach(r => {
+          if (r.motivo === 'nota') reprovNota++;
+          else if (r.motivo === 'falta') reprovFalta++;
+          else if (r.motivo === 'ambos') reprovAmbos++;
+        });
+      }
+    });
+
+    const mediaGeral = notasList.length > 0 ? (notaSum / notasList.length) : 0;
+    const totalReprovacoes = reprovNota + reprovFalta + reprovAmbos;
+    
+    // Sort pra melhores e piores
+    const sorted = [...notasList].sort((a, b) => b.nota - a.nota);
+    const melhores = sorted.slice(0, 3);
+    const piores = [...sorted].reverse().slice(0, 3);
+
+    // Taxa de sucesso (tentativas bem sucedidas vs totais)
+    const tentativasTotais = countConcluidas + totalReprovacoes;
+    const taxaSucesso = tentativasTotais > 0 ? countConcluidas / tentativasTotais : 0;
+
+    return {
+      mediaGeral: mediaGeral.toFixed(1),
+      totalReprovacoes, 
+      reprovNota, 
+      reprovFalta, 
+      reprovAmbos,
+      melhores, 
+      piores, 
+      totalComNota: notasList.length,
+      countConcluidas,
+      taxaSucesso,
+      tentativasTotais,
+      histograma: [range0to49, range50to69, range70to89, range90to100]
+    };
+  }, [disciplinas]);
+
+  const chartConfig = {
+    backgroundGradientFrom: colors.background,
+    backgroundGradientTo: colors.background,
+    color: (opacity = 1) => `rgba(139, 92, 246, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`,
+    strokeWidth: 2,
+    barPercentage: 0.6,
+    fillShadowGradient: colors.primary,
+    fillShadowGradientOpacity: 0.8,
+    useShadowColorFromDataset: false,
+    decimalPlaces: 0,
+  };
 
   // --- CARREGAMENTO DE DADOS ---
   const carregarDados = async () => {
@@ -100,15 +178,6 @@ export function DashboardScreen({ onChangeTab }: { onChangeTab: (tab: any) => vo
 
         </View>
 
-        <TouchableOpacity 
-          style={styles.dashboardBtn} 
-          onPress={() => setShowDashboard(true)}
-          activeOpacity={0.8}
-        >
-          <BarChart2 size={20} color={colors.background} />
-          <Text style={styles.dashboardBtnText}>Análise de Desempenho do Curso</Text>
-        </TouchableOpacity>
-
         {/* --- AULAS DE HOJE --- */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Aulas de Hoje</Text>
@@ -178,12 +247,162 @@ export function DashboardScreen({ onChangeTab }: { onChangeTab: (tab: any) => vo
           ))
         )}
 
-      </ScrollView>
+        {/* --- ANÁLISE DE DESEMPENHO --- */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Análise de Desempenho</Text>
+        </View>
 
-      <DashboardEstatisticasModal 
-        visible={showDashboard} 
-        onClose={() => setShowDashboard(false)} 
-      />
+        {/* CARD CR / MÉDIA GERAL */}
+        <View style={styles.crCard}>
+          <Text style={styles.crLabel}>Coeficiente de Rendimento (CR)</Text>
+          <View style={styles.crValueContainer}>
+            <Award size={32} color={parseFloat(stats.mediaGeral) >= 70 ? colors.concluida : parseFloat(stats.mediaGeral) > 0 ? colors.cursando : colors.textMuted} style={{marginRight: 8}} />
+            <Text style={[ styles.crValue, { color: parseFloat(stats.mediaGeral) >= 70 ? colors.concluida : parseFloat(stats.mediaGeral) > 0 ? colors.cursando : colors.textMuted } ]}>
+              {stats.mediaGeral}
+            </Text>
+          </View>
+          <Text style={styles.crSubtext}>
+            Média baseada nas {stats.totalComNota} notas registradas.
+          </Text>
+        </View>
+
+        {/* SEÇÃO GRÁFICO - TAXA DE SUCESSO */}
+        {stats.tentativasTotais > 0 && (
+          <View style={styles.dashboardSection}>
+            <View style={styles.dashboardSectionHeader}>
+              <PieChart size={20} color={colors.disponivel} />
+              <Text style={styles.dashboardSectionTitle}>Taxa de Aprovação</Text>
+            </View>
+            
+            <View style={styles.progressChartContainer}>
+              <ProgressChart
+                data={{
+                  labels: ["Aprovação"],
+                  data: [stats.taxaSucesso]
+                }}
+                width={screenWidth - 80}
+                height={160}
+                strokeWidth={16}
+                radius={54}
+                chartConfig={{
+                  ...chartConfig,
+                  color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+                }}
+                hideLegend={true}
+              />
+              <View style={styles.progressChartLabelContainer}>
+                <Text style={styles.progressChartPercentage}>
+                  {Math.round(stats.taxaSucesso * 100)}%
+                </Text>
+                <Text style={styles.progressChartSubtext}>
+                  {stats.countConcluidas} de {stats.tentativasTotais} concluídas
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* SEÇÃO GRÁFICO - DISTRIBUIÇÃO DAS NOTAS */}
+        {stats.totalComNota > 0 && (
+          <View style={styles.dashboardSection}>
+            <View style={styles.dashboardSectionHeader}>
+              <Activity size={20} color={colors.cursando} />
+              <Text style={styles.dashboardSectionTitle}>Distribuição das Notas</Text>
+            </View>
+            
+            <View style={styles.barChartWrapper}>
+              <BarChart
+                data={{
+                  labels: ["0-49", "50-69", "70-89", "90-100"],
+                  datasets: [{ data: stats.histograma }]
+                }}
+                width={screenWidth - 80}
+                height={220}
+                yAxisLabel=""
+                yAxisSuffix=""
+                chartConfig={{
+                  ...chartConfig,
+                  fillShadowGradient: colors.cursando,
+                  color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
+                }}
+                withInnerLines={true}
+                showValuesOnTopOfBars={true}
+                fromZero={true}
+                style={styles.chartStyle}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* SEÇÃO REPROVAÇÕES */}
+        <View style={styles.dashboardSection}>
+          <View style={styles.dashboardSectionHeader}>
+            <AlertTriangle size={20} color={colors.error} />
+            <Text style={styles.dashboardSectionTitle}>Histórico de Reprovações</Text>
+          </View>
+          
+          <View style={styles.statsGridRow}>
+            <View style={styles.statBox}>
+              <Text style={[styles.statBoxValue, { color: stats.totalReprovacoes === 0 ? colors.textMuted : colors.text }]}>{stats.totalReprovacoes}</Text>
+              <Text style={styles.statBoxLabel}>Total</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={[styles.statBoxValue, {color: stats.totalReprovacoes === 0 ? colors.textMuted : colors.cursando}]}>{stats.reprovNota}</Text>
+              <Text style={styles.statBoxLabel}>Por Nota</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={[styles.statBoxValue, {color: stats.totalReprovacoes === 0 ? colors.textMuted : colors.concluida}]}>{stats.reprovFalta}</Text>
+              <Text style={styles.statBoxLabel}>Frequência</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={[styles.statBoxValue, {color: stats.totalReprovacoes === 0 ? colors.textMuted : colors.error}]}>{stats.reprovAmbos}</Text>
+              <Text style={styles.statBoxLabel}>Ambos</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* SEÇÃO MELHORES DISCIPLINAS */}
+        {stats.melhores.length > 0 && (
+          <View style={styles.dashboardSection}>
+            <View style={styles.dashboardSectionHeader}>
+              <TrendingUp size={20} color={colors.concluida} />
+              <Text style={styles.dashboardSectionTitle}>Top 3 Melhores Notas</Text>
+            </View>
+            {stats.melhores.map((item, index) => (
+              <View key={index} style={styles.rankingRow}>
+                <Text style={styles.rankingName} numberOfLines={1}>{item.nome}</Text>
+                <Text style={[ styles.rankingNota, {color: colors.concluida}]}>{item.nota.toFixed(1)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* SEÇÃO PIORES DISCIPLINAS */}
+        {stats.piores.length > 0 && (
+          <View style={styles.dashboardSection}>
+            <View style={styles.dashboardSectionHeader}>
+              <TrendingDown size={20} color={colors.error} />
+              <Text style={styles.dashboardSectionTitle}>Maiores Dificuldades</Text>
+            </View>
+            {stats.piores.map((item, index) => (
+              <View key={index} style={styles.rankingRow}>
+                <Text style={styles.rankingName} numberOfLines={1}>{item.nome}</Text>
+                <Text style={[ styles.rankingNota, {color: colors.error}]}>{item.nota.toFixed(1)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {stats.totalComNota === 0 && stats.totalReprovacoes === 0 && (
+          <View style={styles.emptyStateStats}>
+            <Frown size={48} color={colors.border} />
+            <Text style={styles.emptyStateText}>
+              Ainda não há dados suficientes.{'\n'}Adicione notas nas disciplinas para desbloquear estas estatísticas.
+            </Text>
+          </View>
+        )}
+
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -248,4 +467,34 @@ const styles = StyleSheet.create({
   emptyText: { color: colors.textMuted, textAlign: 'center', marginTop: 12, marginBottom: 16, fontSize: 14, lineHeight: 20 },
   addBtn: { backgroundColor: colors.surfaceLight, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: colors.border },
   addBtnText: { color: colors.text, fontWeight: '600', fontSize: 13 },
+
+  /* --- STYLES DAS ESTATISTICAS --- */
+  crCard: { backgroundColor: colors.surfaceHover, padding: 20, borderRadius: 16, alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: colors.border },
+  crLabel: { fontSize: 14, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 0.5, textAlign: 'center' },
+  crValueContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  crValue: { fontSize: 48, fontWeight: 'bold' },
+  crSubtext: { fontSize: 12, color: colors.text, textAlign: 'center', fontStyle: 'italic' },
+  
+  dashboardSection: { marginBottom: 24, backgroundColor: colors.surfaceHover, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border },
+  dashboardSectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 8 },
+  dashboardSectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text },
+  
+  statsGridRow: { flexDirection: 'row', gap: 6, justifyContent: 'space-between' },
+  statBox: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 8, paddingVertical: 12, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  statBoxValue: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 6 },
+  statBoxLabel: { fontSize: 10, color: colors.textMuted, fontWeight: '600', textAlign: 'center', lineHeight: 12 },
+  
+  rankingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  rankingName: { flex: 1, fontSize: 14, color: colors.text, paddingRight: 16 },
+  rankingNota: { fontSize: 16, fontWeight: 'bold' },
+  
+  emptyStateStats: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 20 },
+  emptyStateText: { marginTop: 16, color: colors.textMuted, textAlign: 'center', fontSize: 14, lineHeight: 22 },
+
+  progressChartContainer: { alignItems: 'center', justifyContent: 'center', marginVertical: 8 },
+  progressChartLabelContainer: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  progressChartPercentage: { fontSize: 32, fontWeight: 'bold', color: colors.concluida },
+  progressChartSubtext: { fontSize: 11, color: colors.textMuted, marginTop: 4, fontWeight: '500' },
+  barChartWrapper: { alignItems: 'center', marginTop: 8, marginLeft: -16 },
+  chartStyle: { borderRadius: 12, paddingRight: 0 }
 });
