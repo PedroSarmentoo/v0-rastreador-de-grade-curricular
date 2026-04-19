@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View, TouchableOpacity, Text, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BookOpen } from 'lucide-react-native'; // <-- Adicionado o BookOpen
+import { BookOpen } from 'lucide-react-native';
 import { colors } from '../theme/colors';
 import { useDisciplinas } from '../contexts/DisciplinasContext';
 import { EstatisticasHeader } from '../components/EstatisticasHeader';
@@ -10,7 +10,7 @@ import { SemestreSection } from '../components/SemestreSection';
 import { Confetti } from '../components/Confetti';
 
 export function HomeScreen() {
-  const { semestres, progressoPercentual, disciplinas } = useDisciplinas(); // <-- Puxei disciplinas para contar as selecionadas
+  const { semestres, progressoPercentual, disciplinas } = useDisciplinas();
   
   // Estados dos Modais
   const [modalPlanejamentoVisible, setModalPlanejamentoVisible] = useState(false);
@@ -18,6 +18,9 @@ export function HomeScreen() {
   // Responsividade
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
+
+  // Lógica para contar as disciplinas selecionadas (Ajuste 'cursando' para o status correto que você deseja contar)
+  const qtdSelecionadas = disciplinas.filter(d => d.status === 'cursando').length;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -30,8 +33,6 @@ export function HomeScreen() {
       >
         <EstatisticasHeader />
 
-        {/* Removi a Legenda duplicada que estava aqui em cima solta */}
-        
         <View style={[styles.actionContainer, !isDesktop && styles.actionContainerMobile]}>
           {isDesktop && <View style={styles.spacerLeft} />}
           
@@ -40,6 +41,22 @@ export function HomeScreen() {
           </View>
           
           <View style={[styles.rightAction, !isDesktop && styles.rightActionMobile]}>
+            {/* O BOTÃO FOI ADICIONADO AQUI */}
+            <TouchableOpacity 
+              style={styles.inlinePlanButton}
+              onPress={() => setModalPlanejamentoVisible(true)}
+              activeOpacity={0.8}
+            >
+              <BookOpen size={20} color="#FFF" />
+              <Text style={styles.inlinePlanButtonText}>Montar Semestre</Text>
+              
+              {/* Badge dinâmico: só aparece se houver disciplinas selecionadas */}
+              {qtdSelecionadas > 0 && (
+                <View style={styles.inlineBadge}>
+                  <Text style={styles.inlineBadgeText}>{qtdSelecionadas}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
         
@@ -51,7 +68,6 @@ export function HomeScreen() {
   );
 }
 
-// --- ESTILOS CORRIGIDOS E ADICIONADOS ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -74,7 +90,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   actionContainerMobile: {
-    flexDirection: 'column-reverse', // No celular, o botão fica em cima e a legenda embaixo
+    flexDirection: 'column-reverse', 
     gap: 16,
   },
   spacerLeft: {
@@ -108,7 +124,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   inlineBadge: {
-    backgroundColor: '#EF4444', // Vermelho para chamar atenção
+    backgroundColor: '#EF4444', 
     borderRadius: 12,
     paddingHorizontal: 6,
     paddingVertical: 2,
