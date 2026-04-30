@@ -58,6 +58,7 @@ export function HorariosScreen() {
   
   const [aulas, setAulas] = useState<AulaAgendada[]>([]);
   const [lembretes, setLembretes] = useState<Lembrete[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<'aula' | 'lembrete'>('aula');
@@ -92,13 +93,26 @@ export function HorariosScreen() {
         const dadosLembretes = await AsyncStorage.getItem(STORAGE_KEY_LEMBRETES);
         if (dadosAulas) setAulas(JSON.parse(dadosAulas));
         if (dadosLembretes) setLembretes(JSON.parse(dadosLembretes));
-      } catch (e) { console.error(e); }
+      } catch (e) { 
+        console.error(e); 
+      } finally {
+        setIsLoading(false);
+      }
     }
     carregar();
   }, []);
 
-  useEffect(() => { AsyncStorage.setItem(STORAGE_KEY_AULAS, JSON.stringify(aulas)).catch(console.error); }, [aulas]);
-  useEffect(() => { AsyncStorage.setItem(STORAGE_KEY_LEMBRETES, JSON.stringify(lembretes)).catch(console.error); }, [lembretes]);
+  useEffect(() => { 
+    if (!isLoading) {
+      AsyncStorage.setItem(STORAGE_KEY_AULAS, JSON.stringify(aulas)).catch(console.error); 
+    }
+  }, [aulas, isLoading]);
+
+  useEffect(() => { 
+    if (!isLoading) {
+      AsyncStorage.setItem(STORAGE_KEY_LEMBRETES, JSON.stringify(lembretes)).catch(console.error); 
+    }
+  }, [lembretes, isLoading]);
 
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const jsDay = now.getDay(); 
