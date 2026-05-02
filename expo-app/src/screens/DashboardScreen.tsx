@@ -172,8 +172,9 @@ export function DashboardScreen({ onChangeTab }: { onChangeTab: (tab: any) => vo
             <View style={[styles.statIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
               <Target size={20} color="#F59E0B" />
             </View>
-            <Text style={styles.statValue}>{horasAcc}h</Text>
-            <Text style={styles.statLabel}>Horas ACC</Text>
+            <Text style={styles.statValue}>{Math.max(0, 200 - horasAcc)}h</Text>
+            <Text style={styles.statLabel}>Horas Faltantes</Text>
+            <Text style={styles.statSubValueRight}>Total: {horasAcc}h</Text>
           </View>
 
         </View>
@@ -445,6 +446,7 @@ const styles = StyleSheet.create({
   statIconBox: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   statValue: { fontSize: 24, fontWeight: '900', color: colors.text, marginBottom: 2 },
   statLabel: { fontSize: 13, color: colors.textMuted, fontWeight: '500' },
+  statSubValueRight: { position: 'absolute', bottom: 12, right: 16, fontSize: 11, color: colors.textMuted, fontWeight: '600' },
 
   aulasList: { gap: 8 },
   aulaDashboardCard: { flexDirection: 'row', backgroundColor: colors.surfaceLight, borderRadius: 12, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },

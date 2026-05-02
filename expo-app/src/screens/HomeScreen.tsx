@@ -220,6 +220,11 @@ export function HomeScreen() {
                           <Text style={[styles.materiaNomeCarrinho, isSelected && { color: '#FFF' }]}>
                             {materia.nome}
                           </Text>
+                          {materia.cargaHoraria && (
+                            <View style={[styles.badgeCH, isSelected && { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                              <Text style={[styles.badgeCHText, isSelected && { color: '#FFF' }]}>{materia.cargaHoraria}h</Text>
+                            </View>
+                          )}
                           {isGargalo && (
                             <View style={styles.badgeGargalo}>
                               <Flame size={12} color="#EF4444" />
@@ -229,7 +234,7 @@ export function HomeScreen() {
                         </View>
 
                         <Text style={[styles.materiaDetalhe, isSelected && { color: 'rgba(255,255,255,0.8)' }]}>
-                          Do {materia.semestre}º Semestre • {materia.cargaHoraria ? `${materia.cargaHoraria}h` : 'CH não informada'} • Tranca {qtdDependentes} matérias
+                          Do {materia.semestre}º Semestre • Tranca {qtdDependentes} matérias
                         </Text>
                       </View>
                       
@@ -318,6 +323,8 @@ const styles = StyleSheet.create({
   materiaNomeCarrinho: { fontSize: 15, fontWeight: '600', color: colors.text },
   badgeGargalo: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(239, 68, 68, 0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, gap: 4, marginTop: 2 },
   badgeGargaloText: { fontSize: 10, color: '#EF4444', fontWeight: 'bold' },
+  badgeCH: { backgroundColor: colors.surface, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: colors.border },
+  badgeCHText: { fontSize: 10, color: colors.textMuted, fontWeight: 'bold' },
   materiaDetalhe: { fontSize: 13, color: colors.textMuted, flexWrap: 'wrap', marginTop: 2 },
   
   checkboxContainer: { paddingLeft: 8, justifyContent: 'center', alignItems: 'center' },

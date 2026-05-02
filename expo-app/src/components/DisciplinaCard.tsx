@@ -16,7 +16,7 @@ export function DisciplinaCard({ disciplina }: Props) {
   const { toggleDisciplina, disciplinas, avaliacoes } = useDisciplinas();
   const [modalVisible, setModalVisible] = useState(false);
   const [aproveitamentoVisible, setAproveitamentoVisible] = useState(false);
-  const { id, nome, status, preRequisitos, notaFinal, reprovacoes } = disciplina;
+  const { id, nome, status, preRequisitos, notaFinal, reprovacoes, cargaHoraria } = disciplina;
 
   // Calculamos quantas provas temos no banco
   const qtdProvas = avaliacoes[id]?.length || 0;
@@ -127,6 +127,9 @@ export function DisciplinaCard({ disciplina }: Props) {
           <Text style={[styles.statusText, { color: getIconColor() }]}>
             {status === 'concluida' ? 'Concluída' : status === 'cursando' ? 'Cursando' : status === 'disponivel' ? 'Disponível' : 'Bloqueada'}
           </Text>
+          {cargaHoraria && (
+            <Text style={styles.cargaHorariaText}>{cargaHoraria}h</Text>
+          )}
         </View>
 
         {status !== 'bloqueada' && (
@@ -192,6 +195,7 @@ const styles = StyleSheet.create({
   footerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto' },
   statusBadge: {},
   statusText: { fontSize: 11, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
+  cargaHorariaText: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   actionsContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   actionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: colors.surfaceHover, minWidth: 32, minHeight: 32 },
   badgeProvas: { position: 'absolute', top: -6, right: -6, backgroundColor: colors.primary, borderRadius: 10, width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
