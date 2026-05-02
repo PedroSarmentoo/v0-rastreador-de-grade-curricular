@@ -66,6 +66,23 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
   });
   const [isLoading, setIsLoading] = useState(true);
 
+  const getGradeBase = useCallback((curso: string) => {
+    switch (curso) {
+      case 'Sistemas de Informação':
+        return disciplinasSI;
+      case 'Engenharia Civil':
+        return disciplinasCivil;
+      case 'Engenharia Elétrica':
+        return disciplinasEletrica;
+      case 'Matemática':
+        return disciplinasMatematica;
+      case 'Engenharia de Sistemas':
+        return disciplinasIniciais;
+      default:
+        return disciplinasIniciais;
+    }
+  }, []);
+
   const atualizarTodasDisciplinas = useCallback((disciplinasAtuais: Disciplina[]): Disciplina[] => {
     const mapa = new Map<string, Disciplina>();
     disciplinasAtuais.forEach(d => mapa.set(d.id, { ...d }));
@@ -117,13 +134,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
           const dadosSalvos = JSON.parse(jsonValue);
           setDisciplinas(atualizarTodasDisciplinas(dadosSalvos));
         } else {
-          const gradeBase = 
-            cursoAtual === 'Sistemas de Informação' ? disciplinasSI : 
-            cursoAtual === 'Engenharia Civil' ? disciplinasCivil : 
-            cursoAtual === 'Matemática' ? disciplinasMatematica : 
-            disciplinasIniciais;
-
-          setDisciplinas(atualizarTodasDisciplinas(gradeBase));
+          setDisciplinas(atualizarTodasDisciplinas(getGradeBase(cursoAtual)));
         }
         
         const accValue = await AsyncStorage.getItem(ACC_STORAGE_KEY);
@@ -143,7 +154,7 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
       }
     }
     carregarDados();
-  }, [atualizarTodasDisciplinas]);
+  }, [atualizarTodasDisciplinas, getGradeBase]);
 
   // SALVAR DADOS
   useEffect(() => {
@@ -180,20 +191,14 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
       if (jsonValue !== null) {
         setDisciplinas(atualizarTodasDisciplinas(JSON.parse(jsonValue)));
       } else {
-        const gradeBase = 
-          novoCurso === 'Sistemas de Informação' ? disciplinasSI : 
-          novoCurso === 'Engenharia Civil' ? disciplinasCivil : 
-          novoCurso === 'Matemática' ? disciplinasMatematica : 
-          disciplinasIniciais;
-
-        setDisciplinas(atualizarTodasDisciplinas(gradeBase));
+        setDisciplinas(atualizarTodasDisciplinas(getGradeBase(novoCurso)));
       }
     } catch (e) {
       console.error('Erro ao trocar curso:', e);
     } finally {
       setIsLoading(false);
     }
-  }, [atualizarTodasDisciplinas]);
+  }, [atualizarTodasDisciplinas, getGradeBase]);
 
   const toggleDisciplina = useCallback((id: string) => {
     setDisciplinas((prev) => {
@@ -272,15 +277,8 @@ export function DisciplinasProvider({ children }: { children: ReactNode }) {
 
   // RESETAR GRADE
   const resetarGrade = useCallback(() => {
-    const gradeBase = 
-          nomeCurso === 'Sistemas de Informação' ? disciplinasSI : 
-          nomeCurso === 'Engenharia Civil' ? disciplinasCivil : 
-          nomeCurso === 'Engenharia Elétrica' ? disciplinasEletrica : 
-          nomeCurso === 'Matemática' ? disciplinasMatematica : 
-      disciplinasIniciais;
-
-    setDisciplinas(atualizarTodasDisciplinas(gradeBase));
-  }, [atualizarTodasDisciplinas, nomeCurso]);
+    setDisciplinas(atualizarTodasDisciplinas(getGradeBase(nomeCurso)));
+  }, [atualizarTodasDisciplinas, getGradeBase, nomeCurso]);
 
   const totalDisciplinas = disciplinas.length;
   

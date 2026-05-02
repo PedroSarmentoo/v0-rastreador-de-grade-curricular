@@ -23,3 +23,5 @@ ios/Pods/
 
 # web
 web-build/
+.vercel
+.env*.local
