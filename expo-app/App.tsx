@@ -16,6 +16,7 @@ import { colors } from './src/theme/colors';
 
 import { Platform } from 'react-native';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 // Renderizando de forma segura a Analytics apenas se estiver rodando na web
 const SafeAnalytics = () => {
@@ -27,7 +28,7 @@ const SafeAnalytics = () => {
 
 function MainNavigator() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'grade' | 'horarios' | 'atividades' | 'settings'>('dashboard');
-  const insets = useSafeAreaInsets(); 
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.container}>
@@ -40,7 +41,7 @@ function MainNavigator() {
       </View>
 
       <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        
+
         <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('grade')} activeOpacity={0.7}>
           <GraduationCap size={24} color={activeTab === 'grade' ? colors.disponivel : colors.textMuted} />
           <Text style={[styles.tabLabel, activeTab === 'grade' && styles.tabLabelActive]}>Grade</Text>
